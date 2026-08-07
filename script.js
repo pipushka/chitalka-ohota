@@ -117,17 +117,21 @@ function splitReports(text)
 {
     const reports = [];
 
-    const regex = /#(\d+)[\s\S]*?(?=(?:#\d+\s)|$)/g;
+    const regex =
+        /(?:\*\*)?#(\d+)(?:\*\*)?[\s\S]*?(?=(?:\*\*)?#\d+|$)/g;
+
 
     let match;
 
-    while ((match = regex.exec(text)) !== null)
+
+    while((match = regex.exec(text)) !== null)
     {
         reports.push({
             number: Number(match[1]),
             text: match[0]
         });
     }
+
 
     return reports;
 }
@@ -420,10 +424,10 @@ const reportDate = dateMatch[1];
     // Несколько участников
     //------------------------------------
 
-    const multi =
-    text.match(
-        /Участники:([\s\S]*?)(?=Таскающие:|Север:|Ветер:|$)/i
-    );
+   const multi =
+text.match(
+    /Участники:([\s\S]*?)(?=Таскающие:|Север:|Ветер:|$)/i
+);
 
     if(multi)
     {
@@ -539,6 +543,14 @@ else if (
         }
     }
 
+//------------------------------------
+// Игнорируем Север и Ветер
+//------------------------------------
+
+text = text.replace(
+    /(?:Север|Ветер):[\s\S]*?(?=\n[A-ЯЁ]|$)/gi,
+    ""
+);
     //------------------------------------
     // Проверка участников
     //------------------------------------
