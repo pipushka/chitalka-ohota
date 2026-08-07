@@ -245,6 +245,96 @@ drawErrors();
 drawResults();
 }
 
+//ловим даты странные
+function checkFutureDate(reportNumber, text, reportDate)
+{
+    const headerMatch = text.match(
+        /#\d+\s+(Сегодня|Вчера|\d{1,2}\s+[а-яё]+\s+в)/i
+    );
+
+
+    if(!headerMatch)
+        return;
+
+
+    let commentDate;
+
+
+    const word = headerMatch[1].toLowerCase();
+
+
+    const now = new Date();
+
+
+    if(word === "сегодня")
+    {
+        commentDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate()
+        );
+    }
+    else if(word === "вчера")
+    {
+        commentDate = new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate() - 1
+        );
+    }
+    else
+    {
+        const months = {
+            "января":0,
+            "февраля":1,
+            "марта":2,
+            "апреля":3,
+            "мая":4,
+            "июня":5,
+            "июля":6,
+            "августа":7,
+            "сентября":8,
+            "октября":9,
+            "ноября":10,
+            "декабря":11
+        };
+
+
+        const dateMatch = text.match(
+            /#\d+\s+(\d{1,2})\s+([а-яё]+)\s+в/i
+        );
+
+
+        if(!dateMatch)
+            return;
+
+
+        commentDate = new Date(
+            now.getFullYear(),
+            months[dateMatch[2].toLowerCase()],
+            Number(dateMatch[1])
+        );
+    }
+
+
+    const parts = reportDate.split(".");
+
+
+    const report = new Date(
+        Number(parts[2]),
+        Number(parts[1])-1,
+        Number(parts[0])
+    );
+
+
+    if(report > commentDate)
+    {
+        errors.push(
+            `#${reportNumber} — дата отчёта ${reportDate} не может быть позже даты комментария.`
+        );
+    }
+}
+
 // =========================================
 // Пока пусто
 // =========================================
@@ -283,6 +373,11 @@ if(parts[2].length === 2)
 }
 
 reportDate = parts.join(".");
+    checkFutureDate(
+    number,
+    text,
+    reportDate
+);
     
     const typeMatch =
         text.match(/Вид:\s*([^;\n]+)/i);
