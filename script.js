@@ -71,7 +71,7 @@ function addHunt(id, value, date)
     if(available <= 0)
     {
         errors.push(
-            `Игрок ${id} уже получил максимум дичи за ${date}.`
+            `Игрок ${id} уже получил максимум дичи за ${date}. Вертихвост`
         );
 
         return;
