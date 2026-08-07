@@ -286,10 +286,10 @@ const reportDate = dateMatch[1];
         typeMatch[1].trim().toLowerCase();
 
 const hasLeader =
-    /Ведущий:/i.test(text);
+    /\*{0,2}Ведущий\*{0,2}\s*:/i.test(text);
 
 
-// Проверяем вид только у обычных отчётов
+// Проверяем вид только у обычных отчётов без ведущего
 if(!hasLeader)
 {
     const allowedTypes = [
