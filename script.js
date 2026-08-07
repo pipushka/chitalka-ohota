@@ -284,12 +284,17 @@ const reportDate = dateMatch[1];
 
     const type =
         typeMatch[1].trim().toLowerCase();
-    
-//не выбран вид
-    if(type.includes("/") || type.includes("\\"))
+
+    // Проверка допустимых видов
+const allowedTypes = [
+    "свободная",
+    "на мышей"
+];
+
+if(!allowedTypes.includes(type))
 {
     errors.push(
-        `#${number} — указано несколько видов охоты: "${typeMatch[1].trim()}".`
+        `#${number} — неизвестный вид охоты: "${typeMatch[1].trim()}". Допустимо: свободная или на мышей.`
     );
 
     return;
