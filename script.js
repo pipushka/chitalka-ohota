@@ -41,11 +41,7 @@ function createPlayer(id)
     return players[id];
 }
 
-function addHunt(
-    person.id,
-    person.points,
-    reportDate
-);
+function addHunt(id, value, date)
 {
     const player = createPlayer(id);
 
@@ -79,11 +75,7 @@ function addHunt(
 
 
 
-addMouse(
-    id,
-    points,
-    reportDate
-);
+function addMouse(id, value, date)
 {
     const player = createPlayer(id);
 
@@ -328,12 +320,8 @@ const reportDate =
         const points =
             Number(participant[2].replace(",", "."));
 
-        addMouse(
-    id,
-    points,
-    reportDate
-);
-
+      function addMouse(id, value, date)
+{
         return;
     }
 
@@ -362,8 +350,8 @@ const reportDate =
                 continue;
             }
 
-            addHunt(person.id, person.points, reportDate);
-        }
+            function addHunt(id, value, date)
+{
     }
 
     //------------------------------------
@@ -391,8 +379,8 @@ const reportDate =
                 continue;
             }
 
-            addHunt(person.id, person.points, reportDate);
-        }
+           function addHunt(id, value, date)
+{
     }
 
     //------------------------------------
@@ -439,12 +427,8 @@ if (leader)
 
     if (!found)
     {
-       addHunt(
-    person.id,
-    person.points,
-    reportDate
-);
-    }
+       function addHunt(id, value, date)
+{
 }
 else if (
     type.includes("утрен") ||
