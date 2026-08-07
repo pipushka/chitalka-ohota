@@ -125,17 +125,21 @@ function splitReports(text)
 {
     const reports = [];
 
-    const regex = /#(\d+)[\s\S]*?(?=(?:#\d+\s)|$)/g;
+    const regex =
+        /\*{0,2}#(\d+)\*{0,2}[\s\S]*?(?=\*{0,2}#\d+\*{0,2}|$)/g;
+
 
     let match;
 
-    while ((match = regex.exec(text)) !== null)
+
+    while((match = regex.exec(text)) !== null)
     {
         reports.push({
             number: Number(match[1]),
             text: match[0]
         });
     }
+
 
     return reports;
 }
@@ -272,7 +276,11 @@ const reportDate = dateMatch[1];
 
     const type =
         typeMatch[1].trim().toLowerCase();
-
+// пока север и ветер
+text = text.replace(
+    /\*\*(Север|Ветер):\*\*[\s\S]*?(?=\*\*[А-ЯЁ]|$)/gi,
+    ""
+);
     //------------------------------------
     // История
     //------------------------------------
