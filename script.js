@@ -67,7 +67,7 @@ function addHunt(id, value, date, reportNumber)
     player.hunt += value;
 }
 
-function addMouse(id, value, date)
+function addMouse(id, value, date, reportNumber)
 {
     const player = createPlayer(id);
 
@@ -77,7 +77,9 @@ function addMouse(id, value, date)
         player.dates[date] =
         {
             hunt: 0,
-            mouse: 0
+            mouse: 0,
+             huntReports: [],
+    mouseReports: []
         };
     }
 
@@ -329,7 +331,8 @@ text = text.replace(
        addMouse(
     id,
     points,
-    reportDate
+    reportDate,
+    number
 );
 
         return;
