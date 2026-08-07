@@ -417,56 +417,59 @@ const reportDate = dateMatch[1];
         }
     }
 
-    //------------------------------------
-    // Ведущий
-    //------------------------------------
+   //------------------------------------
+// Ведущий
+//------------------------------------
 
-    const leader =
-    text.match(/Ведущий:[\s\S]*?\[(\d+)\]\s*\(([\d.,]+)\)/i);
+const leader =
+    text.match(
+        /Ведущий:[\s\S]*?\[(\d+)\]\s*\(([\d.,]+)\)/i
+    );
+
 
 if (leader)
 {
     const id = leader[1];
-    const points = Number(leader[2].replace(",", "."));
+
+    const points =
+        Number(
+            leader[2].replace(",", ".")
+        );
+
 
     addLead(id);
 
-    // Если ведущего нет среди участников,
-    // начисляем ему баллы за дичь.
-    let found = false;
 
-    if (single)
+    // проверяем, есть ли он уже среди участников
+
+    let alreadyParticipant = false;
+
+
+    if(single)
     {
-        for (const p of parsePeople(single[1]))
-        {
-            if (p.id === id)
-            {
-                found = true;
-                break;
-            }
-        }
+        alreadyParticipant =
+            parsePeople(single[1])
+            .some(p => p.id === id);
     }
 
-    if (multi)
+
+    if(multi)
     {
-        for (const p of parsePeople(multi[1]))
-        {
-            if (p.id === id)
-            {
-                found = true;
-                break;
-            }
-        }
+        alreadyParticipant =
+            alreadyParticipant ||
+            parsePeople(multi[1])
+            .some(p => p.id === id);
     }
 
-   if (!found)
-{
-    addHunt(
-        id,
-        points,
-        reportDate
-    );
-}
+
+    if(!alreadyParticipant)
+    {
+        addHunt(
+            id,
+            points,
+            reportDate
+        );
+    }
 }
 else if (
     type.includes("утрен") ||
