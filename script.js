@@ -450,14 +450,14 @@ if (leader)
 
 
     if(!alreadyParticipant)
-    {
-        addHunt(
-    person.id,
-    person.points,
-    reportDate,
-    number
-);
-    }
+{
+    addHunt(
+        id,
+        points,
+        reportDate,
+        number
+    );
+}
 }
 else if (
     type.includes("утрен") ||
