@@ -284,6 +284,17 @@ const reportDate = dateMatch[1];
 
     const type =
         typeMatch[1].trim().toLowerCase();
+    
+//не выбран вид
+    if(type.includes("/") || type.includes("\\"))
+{
+    errors.push(
+        `#${number} — указано несколько видов охоты: "${typeMatch[1].trim()}".`
+    );
+
+    return;
+}
+    
 // пока север и ветер
 text = text.replace(
     /\*{0,2}(Север|Ветер):\*{0,2}[\s\S]*?(?=\*{0,2}[А-ЯЁ]|$)/gi,
