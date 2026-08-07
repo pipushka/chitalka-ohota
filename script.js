@@ -356,20 +356,20 @@ text = text.replace(
         }
 
         for(const person of people)
-        {
-            if(person.points==null)
-            {
-                errors.push(`#${number} — нет баллов у ${id}.`);
-                continue;
-            }
+{
+    if(person.points==null)
+    {
+        errors.push(`#${number} — нет баллов у ${person.id}.`);
+        continue;
+    }
 
-           addHunt(
-        id,
-        points,
+    addHunt(
+        person.id,
+        person.points,
         reportDate,
         number
     );
-        }
+}
     }
 
     //------------------------------------
