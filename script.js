@@ -266,7 +266,7 @@ if(/Название команды:/i.test(text))
 
 if(!dateMatch)
 {
-    errors.push(`#${number} — не найдена дата. Скорее всего не указан год`);
+    errors.push(`#${number} — не найдена дата. Скорее всего неправильно указан год`);
     return;
 }
 
@@ -435,48 +435,50 @@ text.match(
     /\*{0,2}Участники:\*{0,2}([\s\S]*?)(?=\*{0,2}Таскающие:|\*{0,2}Север:|\*{0,2}Ветер:|$)/i
 );
 
-   if(multi)
+if(multi)
 {
     const participantText = multi[1].trim();
 
 
-    // если просто "-"
+    // Участников реально нет — это нормально
     if(participantText === "-")
     {
-        return;
+        // ничего не делаем
     }
-
-
-    const people =
-        parsePeople(participantText);
-
-
-    if(people.length === 0)
+    else
     {
-        errors.push(
-            `#${number} — участники указаны, но не удалось найти ID.`
-        );
-    }
+        const people =
+            parsePeople(participantText);
 
 
-    for(const person of people)
-    {
-        if(person.points == null)
+        // Есть текст, но ID не нашли
+        if(people.length === 0)
         {
             errors.push(
-                `#${number} — нет баллов у ${person.id}.`
+                `#${number} — участники указаны, но не удалось найти ID.`
             );
-
-            continue;
         }
 
 
-        addHunt(
-            person.id,
-            person.points,
-            reportDate,
-            number
-        );
+        for(const person of people)
+        {
+            if(person.points == null)
+            {
+                errors.push(
+                    `#${number} — нет баллов у ${person.id}.`
+                );
+
+                continue;
+            }
+
+
+            addHunt(
+                person.id,
+                person.points,
+                reportDate,
+                number
+            );
+        }
     }
 }
 
