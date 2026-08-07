@@ -41,12 +41,10 @@ function createPlayer(id)
     return players[id];
 }
 
-function addHunt(id, value, date)
+function addHunt(id, value, date, reportNumber)
 {
     const player = createPlayer(id);
 
-
-    // нормализуем дату
     date = date.trim();
 
 
@@ -55,44 +53,18 @@ function addHunt(id, value, date)
         player.dates[date] =
         {
             hunt: 0,
-            mouse: 0
+            mouse: 0,
+            huntReports: [],
+            mouseReports: []
         };
     }
 
 
-    let current =
-        player.dates[date].hunt;
+    player.dates[date].hunt += value;
 
+    player.dates[date].huntReports.push(reportNumber);
 
-    let available =
-        5 - current;
-
-
-    if(available <= 0)
-    {
-        errors.push(
-            `Игрок ${id} уже получил максимум дичи за ${date}. Вертихвост`
-        );
-
-        return;
-    }
-
-
-    let add =
-        Math.min(value, available);
-
-
-    player.dates[date].hunt += add;
-
-    player.hunt += add;
-
-
-    if(add < value)
-    {
-        errors.push(
-            `Игрок ${id} получил ${add} из ${value} баллов дичи за ${date}. Лимит 5.`
-        );
-    }
+    player.hunt += value;
 }
 
 function addMouse(id, value, date)
@@ -255,12 +227,16 @@ function calculate()
     const reports = splitReports(text);
 
     for (const report of reports)
-    {
-        parseReport(report.number, report.text);
-    }
+{
+    parseReport(report.number, report.text);
+}
 
-    drawErrors();
-    drawResults();
+
+checkDailyLimits();
+
+
+drawErrors();
+drawResults();
 }
 
 // =========================================
@@ -379,7 +355,8 @@ const reportDate = dateMatch[1];
            addHunt(
     person.id,
     person.points,
-    reportDate
+    reportDate,
+    number
 );
         }
     }
@@ -414,7 +391,8 @@ const reportDate = dateMatch[1];
             addHunt(
     person.id,
     person.points,
-    reportDate
+    reportDate,
+    number
 );
         }
     }
@@ -466,10 +444,11 @@ if (leader)
     if(!alreadyParticipant)
     {
         addHunt(
-            id,
-            points,
-            reportDate
-        );
+    person.id,
+    person.points,
+    reportDate,
+    number
+);
     }
 }
 else if (
@@ -521,6 +500,48 @@ else if (
 // =========================================
 // Вывод ошибок
 // =========================================
+
+function checkDailyLimits()
+{
+    for(const player of Object.values(players))
+    {
+        for(const date in player.dates)
+        {
+            const data = player.dates[date];
+
+
+            if(data.hunt > 5)
+            {
+                errors.push(
+                    `Игрок ${player.id} уже получил максимум дичи за ${date}, комментарии того дня: ${data.huntReports.join(", ")}`
+                );
+
+
+                let excess = data.hunt - 5;
+
+                player.hunt -= excess;
+
+                data.hunt = 5;
+            }
+
+
+            if(data.mouse > 5)
+            {
+                errors.push(
+                    `Игрок ${player.id} уже получил максимум мышей за ${date}, комментарии того дня: ${data.mouseReports.join(", ")}`
+                );
+
+
+                let excess = data.mouse - 5;
+
+                player.mouse -= excess;
+
+                data.mouse = 5;
+            }
+        }
+    }
+}
+
 
 function drawErrors()
 {
