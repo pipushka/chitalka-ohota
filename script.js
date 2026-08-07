@@ -29,25 +29,80 @@ function createPlayer(id)
     if (!players[id])
     {
         players[id] =
-        {
-            id: id,
-            hunt: 0,
-            mouse: 0,
-            lead: 0
-        };
+{
+    id: id,
+    hunt: 0,
+    mouse: 0,
+    lead: 0,
+    dates: {}
+};
     }
 
     return players[id];
 }
 
-function addHunt(id, value)
+function addHunt(id, value, date)
 {
-    createPlayer(id).hunt += value;
+    const player = createPlayer(id);
+
+
+    if(!player.dates[date])
+    {
+        player.dates[date] =
+        {
+            hunt: 0,
+            mouse: 0
+        };
+    }
+
+
+    let available =
+        5 - player.dates[date].hunt;
+
+
+    if(available <= 0)
+        return;
+
+
+    let add =
+        Math.min(value, available);
+
+
+    player.dates[date].hunt += add;
+
+    player.hunt += add;
 }
 
-function addMouse(id, value)
+function addMouse(id, value, date)
 {
-    createPlayer(id).mouse += value;
+    const player = createPlayer(id);
+
+
+    if(!player.dates[date])
+    {
+        player.dates[date] =
+        {
+            hunt: 0,
+            mouse: 0
+        };
+    }
+
+
+    let available =
+        5 - player.dates[date].mouse;
+
+
+    if(available <= 0)
+        return;
+
+
+    let add =
+        Math.min(value, available);
+
+
+    player.dates[date].mouse += add;
+
+    player.mouse += add;
 }
 
 function addLead(id)
@@ -195,7 +250,19 @@ function parseReport(number, text)
     //------------------------------------
     // Вид
     //------------------------------------
+    const dateMatch =
+    text.match(/Дата:\s*(\d{2}\.\d{2}\.\d{4})/i);
 
+
+if(!dateMatch)
+{
+    errors.push(`#${number} — не найдена дата.`);
+    return;
+}
+
+
+const reportDate = dateMatch[1];
+    
     const typeMatch =
         text.match(/Вид:\s*([^;\n]+)/i);
 
@@ -253,7 +320,11 @@ function parseReport(number, text)
         const points =
             Number(participant[2].replace(",", "."));
 
-        addMouse(id, points);
+       addMouse(
+    id,
+    points,
+    reportDate
+);
 
         return;
     }
@@ -283,7 +354,11 @@ function parseReport(number, text)
                 continue;
             }
 
-            addHunt(person.id, person.points);
+           addHunt(
+    person.id,
+    person.points,
+    reportDate
+);
         }
     }
 
@@ -312,7 +387,11 @@ function parseReport(number, text)
                 continue;
             }
 
-            addHunt(person.id, person.points);
+            addHunt(
+    person.id,
+    person.points,
+    reportDate
+);
         }
     }
 
@@ -360,7 +439,7 @@ if (leader)
 
     if (!found)
     {
-        addHunt(id, points);
+        addHunt(id, value, date);
     }
 }
 else if (
@@ -387,7 +466,11 @@ else if (
 
         for(const id of ids)
         {
-            addHunt(id,2.5);
+            addHunt(
+    id,
+    2.5,
+    reportDate
+);
         }
     }
 
