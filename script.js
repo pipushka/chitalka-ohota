@@ -28,57 +28,62 @@ function createPlayer(id)
 {
     if (!players[id])
     {
-        players[id] =
+       players[id] =
 {
     id: id,
     hunt: 0,
     mouse: 0,
     lead: 0,
-    dates:
-    {}
-
- };
+    dates: {}
+};
 }
 
     return players[id];
 }
 
-function addHunt(id, value, date)
+function addHunt(
+    person.id,
+    person.points,
+    reportDate
+);
 {
     const player = createPlayer(id);
+
 
     if(!player.dates[date])
     {
         player.dates[date] =
         {
-            hunt:0,
-            mouse:0
+            hunt: 0,
+            mouse: 0
         };
     }
 
 
-    let available =
+    let free =
         5 - player.dates[date].hunt;
 
 
-    if(available <= 0)
-    {
+    if(free <= 0)
         return;
-    }
 
 
-    let add =
-        Math.min(value, available);
+    let result =
+        Math.min(value, free);
 
 
-    player.dates[date].hunt += add;
+    player.dates[date].hunt += result;
 
-    player.hunt += add;
+    player.hunt += result;
 }
 
 
 
-function addMouse(id, value, date)
+addMouse(
+    id,
+    points,
+    reportDate
+);
 {
     const player = createPlayer(id);
 
@@ -87,29 +92,27 @@ function addMouse(id, value, date)
     {
         player.dates[date] =
         {
-            hunt:0,
-            mouse:0
+            hunt: 0,
+            mouse: 0
         };
     }
 
 
-    let available =
+    let free =
         5 - player.dates[date].mouse;
 
 
-    if(available <= 0)
-    {
+    if(free <= 0)
         return;
-    }
 
 
-    let add =
-        Math.min(value, available);
+    let result =
+        Math.min(value, free);
 
 
-    player.dates[date].mouse += add;
+    player.dates[date].mouse += result;
 
-    player.mouse += add;
+    player.mouse += result;
 }
 
 function addLead(id)
@@ -264,9 +267,6 @@ const reportDate =
 // =========================================
 // Пока пусто
 // =========================================
-
-function parseReport(number, text)
-{
     //------------------------------------
     // Вид
     //------------------------------------
@@ -328,7 +328,11 @@ function parseReport(number, text)
         const points =
             Number(participant[2].replace(",", "."));
 
-        addMouse(id, points, reportDate);
+        addMouse(
+    id,
+    points,
+    reportDate
+);
 
         return;
     }
@@ -435,7 +439,11 @@ if (leader)
 
     if (!found)
     {
-       addHunt(id, points, reportDate);
+       addHunt(
+    person.id,
+    person.points,
+    reportDate
+);
     }
 }
 else if (
