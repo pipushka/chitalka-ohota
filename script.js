@@ -46,6 +46,10 @@ function addHunt(id, value, date)
     const player = createPlayer(id);
 
 
+    // нормализуем дату
+    date = date.trim();
+
+
     if(!player.dates[date])
     {
         player.dates[date] =
@@ -56,12 +60,22 @@ function addHunt(id, value, date)
     }
 
 
+    let current =
+        player.dates[date].hunt;
+
+
     let available =
-        5 - player.dates[date].hunt;
+        5 - current;
 
 
     if(available <= 0)
+    {
+        errors.push(
+            `Игрок ${id} уже получил максимум дичи за ${date}.`
+        );
+
         return;
+    }
 
 
     let add =
@@ -71,6 +85,14 @@ function addHunt(id, value, date)
     player.dates[date].hunt += add;
 
     player.hunt += add;
+
+
+    if(add < value)
+    {
+        errors.push(
+            `Игрок ${id} получил ${add} из ${value} баллов дичи за ${date}. Лимит 5.`
+        );
+    }
 }
 
 function addMouse(id, value, date)
@@ -437,10 +459,14 @@ if (leader)
         }
     }
 
-    if (!found)
-    {
-        addHunt(id, value, date);
-    }
+   if (!found)
+{
+    addHunt(
+        id,
+        points,
+        reportDate
+    );
+}
 }
 else if (
     type.includes("утрен") ||
