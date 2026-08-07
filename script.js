@@ -454,16 +454,7 @@ if(multi)
     {
         const people =
             parsePeople(participantText);
-
-
-        // Текст есть, но ID не найден
-        if(people.length === 0)
-        {
-            errors.push(
-                `#${number} — участники указаны, но не удалось найти ID.`
-            );
-        }
-
+    
 
         for(const person of people)
         {
