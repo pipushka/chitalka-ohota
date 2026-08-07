@@ -359,16 +359,16 @@ text = text.replace(
         {
             if(person.points==null)
             {
-                errors.push(`#${number} — нет баллов у ${person.id}.`);
+                errors.push(`#${number} — нет баллов у ${id}.`);
                 continue;
             }
 
            addHunt(
-    person.id,
-    person.points,
-    reportDate,
-    number
-);
+        id,
+        points,
+        reportDate,
+        number
+    );
         }
     }
 
@@ -395,16 +395,16 @@ text.match(
         {
             if(person.points==null)
             {
-                errors.push(`#${number} — нет баллов у ${person.id}.`);
+                errors.push(`#${number} — нет баллов у ${id}.`);
                 continue;
             }
 
-            addHunt(
-    person.id,
-    person.points,
-    reportDate,
-    number
-);
+           addHunt(
+        id,
+        points,
+        reportDate,
+        number
+    );
         }
     }
 
