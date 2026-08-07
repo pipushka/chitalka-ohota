@@ -128,7 +128,7 @@ function splitReports(text)
     const reports = [];
 
     const regex =
-        /\*{0,2}#(\d+)\*{0,2}[\s\S]*?(?=\*{0,2}#\d+\*{0,2}|$)/g;
+        /(?:^|\n)\s*\*{0,2}#(\d+)\*{0,2}[\s\S]*?(?=\n\s*\*{0,2}#\d+\*{0,2}|$)/g;
 
 
     let match;
@@ -309,34 +309,43 @@ text = text.replace(
         }
     }
 
-    //------------------------------------
-    // Мышиная охота
-    //------------------------------------
+  //------------------------------------
+// Мышиная охота
+//------------------------------------
 
-    if(type.includes("мыш"))
+if(type.includes("мыш"))
+{
+    const participant =
+        text.match(
+            /\*{0,2}Участник:\*{0,2}[\s\S]*?\[(\d+)\]\s*\(([\d.,]+)\)/i
+        );
+
+
+    if(!participant)
     {
-       const single =
-    text.match(/\*{0,2}Участник:\*{0,2}([\s\S]*?)(?=\n\*{0,2}[А-ЯЁ]|$)/i);
-
-        if(!participant)
-        {
-            errors.push(`#${number} — не найден участник.`);
-            return;
-        }
-
-        const id = participant[1];
-        const points =
-            Number(participant[2].replace(",", "."));
-
-       addMouse(
-    id,
-    points,
-    reportDate,
-    number
-);
-
+        errors.push(`#${number} — не найден участник.`);
         return;
     }
+
+
+    const id = participant[1];
+
+    const points =
+        Number(
+            participant[2].replace(",", ".")
+        );
+
+
+    addMouse(
+        id,
+        points,
+        reportDate,
+        number
+    );
+
+
+    return;
+}
 
     //------------------------------------
     // Один участник
