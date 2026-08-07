@@ -251,6 +251,12 @@ drawResults();
 
 function parseReport(number, text)
 {
+    
+// Игнорируем отчёты команд
+if(/Название команды:/i.test(text))
+{
+    return;
+}   
     //------------------------------------
     // Вид
     //------------------------------------
@@ -260,7 +266,7 @@ function parseReport(number, text)
 
 if(!dateMatch)
 {
-    errors.push(`#${number} — не найдена дата.`);
+    errors.push(`#${number} — не найдена дата. Скорее всего не указан год`);
     return;
 }
 
@@ -283,15 +289,19 @@ text = text.replace(
     /\*{0,2}(Север|Ветер):\*{0,2}[\s\S]*?(?=\*{0,2}[А-ЯЁ]|$)/gi,
     ""
 );
+
+    checkBrokenPeople(number, text);
     //------------------------------------
     // История
     //------------------------------------
 
-    if(!/История/i.test(text))
-    {
-        errors.push(`#${number} — отсутствует история.`);
-    }
-
+if(
+    !/История/i.test(text) &&
+    !/Ведущий:/i.test(text)
+)
+{
+    errors.push(`#${number} — отсутствует история.`);
+}
     //------------------------------------
     // Место охоты
     //------------------------------------
@@ -381,6 +391,41 @@ if(type.includes("мыш"))
 }
     }
 
+function checkBrokenPeople(number, text)
+{
+    const names =
+        text.match(
+            /(?:Участник|Участники):([\s\S]*?)(?=\n\*{0,2}[А-ЯЁ]|$)/i
+        );
+
+
+    if(!names)
+        return;
+
+
+    const block = names[1];
+
+
+    if(block.trim() === "-")
+        return;
+
+
+    const hasName =
+        /[А-ЯЁа-яё]/.test(block);
+
+
+    const hasId =
+        /\[\d+\]/.test(block);
+
+
+    if(hasName && !hasId)
+    {
+        errors.push(
+            `#${number} — указан участник без ID.`
+        );
+    }
+}
+
     //------------------------------------
     // Несколько участников
     //------------------------------------
@@ -390,32 +435,50 @@ text.match(
     /\*{0,2}Участники:\*{0,2}([\s\S]*?)(?=\*{0,2}Таскающие:|\*{0,2}Север:|\*{0,2}Ветер:|$)/i
 );
 
-    if(multi)
-    {
-        const people =
-            parsePeople(multi[1]);
+   if(multi)
+{
+    const participantText = multi[1].trim();
 
-        if(people.length===0)
+
+    // если просто "-"
+    if(participantText === "-")
+    {
+        return;
+    }
+
+
+    const people =
+        parsePeople(participantText);
+
+
+    if(people.length === 0)
+    {
+        errors.push(
+            `#${number} — участники указаны, но не удалось найти ID.`
+        );
+    }
+
+
+    for(const person of people)
+    {
+        if(person.points == null)
         {
-            errors.push(`#${number} — участники не найдены.`);
+            errors.push(
+                `#${number} — нет баллов у ${person.id}.`
+            );
+
+            continue;
         }
 
-        for(const person of people)
-{
-    if(person.points==null)
-    {
-        errors.push(`#${number} — нет баллов у ${person.id}.`);
-        continue;
-    }
 
-    addHunt(
-        person.id,
-        person.points,
-        reportDate,
-        number
-    );
-}
+        addHunt(
+            person.id,
+            person.points,
+            reportDate,
+            number
+        );
     }
+}
 
    //------------------------------------
 // Ведущий
