@@ -430,18 +430,23 @@ function checkBrokenPeople(number, text)
     // Несколько участников
     //------------------------------------
 
-    const multi =
+   const multi =
 text.match(
-    /\*{0,2}Участники:\*{0,2}([\s\S]*?)(?=\*{0,2}Таскающие:|\*{0,2}Север:|\*{0,2}Ветер:|$)/i
+    /\*{0,2}Участники:\*{0,2}\s*([\s\S]*?);?\s*(?=\*{0,2}Таскающие:|\*{0,2}Север:|\*{0,2}Ветер:|$)/i
 );
 
 if(multi)
 {
-    const participantText = multi[1].trim();
+    let participantText = multi[1]
+        .replace(/;/g, "")
+        .trim();
 
 
-    // Участников реально нет — это нормально
-    if(participantText === "-")
+    // Участников нет — это нормально
+    if(
+        participantText === "-" ||
+        participantText === ""
+    )
     {
         // ничего не делаем
     }
@@ -451,7 +456,7 @@ if(multi)
             parsePeople(participantText);
 
 
-        // Есть текст, но ID не нашли
+        // Текст есть, но ID не найден
         if(people.length === 0)
         {
             errors.push(
@@ -467,7 +472,6 @@ if(multi)
                 errors.push(
                     `#${number} — нет баллов у ${person.id}.`
                 );
-
                 continue;
             }
 
