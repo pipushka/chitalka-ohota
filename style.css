@@ -1,15 +1,18 @@
 :root{
-    --bg:#1d1f23;
-    --panel:#292c33;
-    --panel2:#333741;
-    --border:#454b57;
-    --text:#f3f3f3;
-    --text2:#c5c8ce;
-    --accent:#4aa8ff;
-    --green:#2fb36d;
-    --red:#d64d4d;
-    --yellow:#e2b84d;
+    --bg:#111315;
+    --panel:#181b20;
+    --panel2:#22262d;
+    --border:#343a44;
+
+    --text:#e8e8e8;
+    --text2:#9da3ad;
+
+    --accent:#3d8cff;
+    --green:#35b56b;
+    --red:#d95353;
+    --yellow:#d8b34d;
 }
+
 
 *{
     margin:0;
@@ -17,9 +20,10 @@
     box-sizing:border-box;
 }
 
+
 body{
 
-    background:var(--bg);
+    background:#0d0f11;
 
     color:var(--text);
 
@@ -28,8 +32,9 @@ body{
         Arial,
         sans-serif;
 
-    padding:30px;
+    padding:25px;
 }
+
 
 .container{
 
@@ -41,8 +46,12 @@ body{
 
     flex-direction:column;
 
-    gap:25px;
+    gap:18px;
 }
+
+
+/* ===== Шапка ===== */
+
 
 header{
 
@@ -50,17 +59,18 @@ header{
 
     border:1px solid var(--border);
 
-    border-radius:12px;
-
     padding:20px;
+
 }
+
 
 header h1{
 
-    font-size:34px;
+    font-size:32px;
 
-    margin-bottom:10px;
+    margin-bottom:8px;
 }
+
 
 header p{
 
@@ -68,6 +78,11 @@ header p{
 
     line-height:1.5;
 }
+
+
+
+/* ===== Блоки ===== */
+
 
 .input-section,
 .errors-section,
@@ -77,10 +92,13 @@ header p{
 
     border:1px solid var(--border);
 
-    border-radius:12px;
-
-    padding:20px;
+    padding:18px;
 }
+
+
+
+/* ===== Заголовки ===== */
+
 
 label{
 
@@ -88,10 +106,15 @@ label{
 
     margin-bottom:10px;
 
-    font-size:20px;
+    font-size:18px;
 
-    font-weight:bold;
+    font-weight:600;
 }
+
+
+
+/* ===== Поле ввода ===== */
+
 
 textarea{
 
@@ -101,95 +124,112 @@ textarea{
 
     resize:vertical;
 
-    background:#202226;
 
-    color:white;
+    background:#101214;
 
-    border:1px solid var(--border);
+    color:#eaeaea;
 
-    border-radius:8px;
 
-    padding:15px;
+    border:1px solid #3b424d;
 
-    font-size:15px;
 
-    font-family:Consolas, monospace;
+    padding:14px;
+
+
+    font-size:14px;
+
+    font-family:
+        Consolas,
+        monospace;
+
 
     outline:none;
 }
 
+
 textarea:focus{
 
     border-color:var(--accent);
+
 }
+
+
+
+/* ===== Кнопки ===== */
+
 
 .buttons{
 
     display:flex;
 
-    gap:15px;
+    gap:12px;
 
     margin-top:15px;
 
-    flex-wrap:wrap;
 }
+
 
 button{
 
-    border:none;
+    border:1px solid transparent;
 
     cursor:pointer;
 
     color:white;
 
-    padding:12px 22px;
+    padding:10px 20px;
 
-    border-radius:8px;
 
-    font-size:16px;
+    font-size:15px;
 
-    transition:.2s;
+    font-weight:600;
+
+
+    transition:.15s;
 }
+
 
 button:hover{
 
-    transform:translateY(-2px);
+    filter:brightness(1.15);
+
 }
+
 
 #calculateBtn{
 
-    background:var(--green);
+    background:#207342;
+
+    border-color:#299653;
 }
 
-#calculateBtn:hover{
-
-    background:#37c77b;
-}
 
 #clearBtn{
 
-    background:#6f7685;
+    background:#454b55;
+
+    border-color:#626975;
 }
 
-#clearBtn:hover{
-
-    background:#858d9e;
-}
 
 #copyBtn{
 
-    background:var(--accent);
+    background:#245fa8;
+
+    border-color:#397dcc;
 }
 
-#copyBtn:hover{
 
-    background:#66b8ff;
-}
+
+/* ===== Ошибки ===== */
+
 
 .errors-section h2{
 
-    margin-bottom:15px;
+    margin-bottom:12px;
+
 }
+
 
 .error-box{
 
@@ -199,43 +239,56 @@ button:hover{
 
     overflow-y:auto;
 
-    border-radius:8px;
+
+    background:#101214;
+
 
     border:1px solid var(--border);
 
-    background:#202226;
 
-    padding:12px;
+    padding:10px;
 }
+
+
 
 .error{
 
-    color:#ff9090;
+    color:#ffaaaa;
 
-    margin-bottom:8px;
+
+    background:#211719;
+
+
+    border-left:3px solid var(--red);
+
 
     padding:8px;
 
-    border-left:4px solid var(--red);
 
-    background:#2a2020;
+    margin-bottom:6px;
+
 }
+
+
 
 .success{
 
-    color:#8ee39f;
+    color:#91e3aa;
 
-    border-left:4px solid var(--green);
 
-    background:#1d2d22;
+    background:#14251b;
+
+
+    border-left:3px solid var(--green);
+
 
     padding:8px;
 }
 
-.placeholder{
 
-    color:#999;
-}
+
+/* ===== Результаты ===== */
+
 
 .result-header{
 
@@ -245,151 +298,206 @@ button:hover{
 
     align-items:center;
 
-    margin-bottom:15px;
+    margin-bottom:12px;
 }
+
+
 
 #totalPlayers{
 
     color:var(--text2);
 
-    font-size:15px;
 }
+
+
+
+/* ===== Таблица ===== */
+
 
 table{
 
     width:100%;
 
     border-collapse:collapse;
+
 }
+
+
 
 thead{
 
-    background:var(--panel2);
+    background:#252a32;
+
 }
+
+
 
 th{
-
-    padding:14px;
-
-    border:1px solid var(--border);
-
-    text-align:center;
-
-    font-size:16px;
-}
-
-td{
 
     padding:12px;
 
     border:1px solid var(--border);
 
+
     text-align:center;
 
+
     font-size:15px;
+
 }
+
+
+
+td{
+
+    padding:10px;
+
+
+    border:1px solid var(--border);
+
+
+    text-align:center;
+
+
+    font-size:14px;
+
+}
+
+
 
 tbody tr:nth-child(even){
 
-    background:#252830;
+    background:#15181c;
+
 }
+
+
 
 tbody tr:hover{
 
-    background:#31353f;
+    background:#20252d;
+
 }
+
+
 
 .placeholderRow td{
 
-    color:#999;
+    color:#777;
 
-    padding:35px;
+    padding:30px;
+
 }
+
+
+
+/* ===== Цвета данных ===== */
+
 
 .idCell{
 
     font-weight:bold;
 
-    color:#74b9ff;
+    color:#67a8ff;
+
 }
+
 
 .scoreCell{
 
-    color:#90f0aa;
+    color:#76db91;
+
 }
+
 
 .leadCell{
 
-    color:#ffd76f;
+    color:#e4c15a;
+
 }
+
 
 .mouseCell{
 
-    color:#ffa7d2;
+    color:#e88ab7;
+
 }
+
+
+
+/* ===== Скролл ===== */
+
 
 ::-webkit-scrollbar{
 
-    width:10px;
+    width:8px;
+
 }
+
 
 ::-webkit-scrollbar-track{
 
-    background:#222;
+    background:#111;
+
 }
+
 
 ::-webkit-scrollbar-thumb{
 
-    background:#555;
+    background:#414750;
 
-    border-radius:6px;
 }
+
 
 ::-webkit-scrollbar-thumb:hover{
 
-    background:#777;
+    background:#59616d;
+
 }
 
-@media (max-width:900px){
+
+
+/* ===== Мобильная версия ===== */
+
+
+@media(max-width:900px){
 
     body{
 
         padding:10px;
+
     }
+
 
     textarea{
 
         height:300px;
+
     }
 
-    button{
-
-        width:100%;
-    }
 
     .buttons{
 
         flex-direction:column;
+
     }
+
+
+    button{
+
+        width:100%;
+
+    }
+
 
     .result-header{
 
         flex-direction:column;
 
-        gap:10px;
-
         align-items:flex-start;
-    }
 
-    table{
+        gap:8px;
 
-        font-size:13px;
-    }
-
-    th,
-    td{
-
-        padding:8px;
     }
 
 }
