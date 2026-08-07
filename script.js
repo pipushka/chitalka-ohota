@@ -41,12 +41,10 @@ function createPlayer(id)
     return players[id];
 }
 
-function addHunt(id, value, date)
+function addHunt(id, value, date, reportNumber)
 {
     const player = createPlayer(id);
 
-
-    // нормализуем дату
     date = date.trim();
 
 
@@ -55,47 +53,21 @@ function addHunt(id, value, date)
         player.dates[date] =
         {
             hunt: 0,
-            mouse: 0
+            mouse: 0,
+            huntReports: [],
+            mouseReports: []
         };
     }
 
 
-    let current =
-        player.dates[date].hunt;
+    player.dates[date].hunt += value;
 
+    player.dates[date].huntReports.push(reportNumber);
 
-    let available =
-        5 - current;
-
-
-    if(available <= 0)
-    {
-        errors.push(
-            `Игрок ${id} уже получил максимум дичи за ${date}. Вертихвост`
-        );
-
-        return;
-    }
-
-
-    let add =
-        Math.min(value, available);
-
-
-    player.dates[date].hunt += add;
-
-    player.hunt += add;
-
-
-    if(add < value)
-    {
-        errors.push(
-            `Игрок ${id} получил ${add} из ${value} баллов дичи за ${date}. Лимит 5.`
-        );
-    }
+    player.hunt += value;
 }
 
-function addMouse(id, value, date)
+function addMouse(id, value, date, reportNumber)
 {
     const player = createPlayer(id);
 
@@ -105,26 +77,18 @@ function addMouse(id, value, date)
         player.dates[date] =
         {
             hunt: 0,
-            mouse: 0
+            mouse: 0,
+            huntReports: [],
+            mouseReports: []
         };
     }
 
 
-    let available =
-        5 - player.dates[date].mouse;
+    player.dates[date].mouse += value;
 
+    player.dates[date].mouseReports.push(reportNumber);
 
-    if(available <= 0)
-        return;
-
-
-    let add =
-        Math.min(value, available);
-
-
-    player.dates[date].mouse += add;
-
-    player.mouse += add;
+    player.mouse += value;
 }
 
 function addLead(id)
@@ -259,6 +223,72 @@ function calculate()
         parseReport(report.number, report.text);
     }
 
+    //лимиты
+    checkLimits();
+
+function checkLimits()
+{
+    for(const player of Object.values(players))
+    {
+        for(const date in player.dates)
+        {
+            const data = player.dates[date];
+
+
+            // Проверка дичи
+            if(data.hunt > 5 && data.huntReports.length > 1)
+            {
+                errors.push(
+                    `Игрок ${player.id} сходил несколько раз на дичь: ${data.huntReports.join(", ")}. Засчитаны только первые 5 баллов.`
+                );
+
+                let overflow = data.hunt - 5;
+
+                player.hunt -= overflow;
+
+                data.hunt = 5;
+            }
+
+
+            // Проверка мышей
+            if(data.mouse > 5 && data.mouseReports.length > 1)
+            {
+                errors.push(
+                    `Игрок ${player.id} сходил несколько раз на мышей: ${data.mouseReports.join(", ")}. Засчитаны только первые 5 баллов.`
+                );
+
+                let overflow = data.mouse - 5;
+
+                player.mouse -= overflow;
+
+                data.mouse = 5;
+            }
+
+
+            // если один отчёт сразу больше лимита
+            if(data.hunt > 5 && data.huntReports.length === 1)
+            {
+                let overflow = data.hunt - 5;
+
+                player.hunt -= overflow;
+
+                data.hunt = 5;
+            }
+
+
+            if(data.mouse > 5 && data.mouseReports.length === 1)
+            {
+                let overflow = data.mouse - 5;
+
+                player.mouse -= overflow;
+
+                data.mouse = 5;
+            }
+        }
+    }
+}
+
+    
     drawErrors();
     drawResults();
 }
@@ -342,10 +372,11 @@ const reportDate = dateMatch[1];
         const points =
             Number(participant[2].replace(",", "."));
 
-       addMouse(
+      addMouse(
     id,
     points,
-    reportDate
+    reportDate,
+    number
 );
 
         return;
@@ -379,7 +410,8 @@ const reportDate = dateMatch[1];
            addHunt(
     person.id,
     person.points,
-    reportDate
+    reportDate,
+    number
 );
         }
     }
@@ -414,7 +446,8 @@ const reportDate = dateMatch[1];
             addHunt(
     person.id,
     person.points,
-    reportDate
+    reportDate,
+    number
 );
         }
     }
@@ -466,10 +499,11 @@ if (leader)
     if(!alreadyParticipant)
     {
         addHunt(
-            id,
-            points,
-            reportDate
-        );
+    person.id,
+    person.points,
+    reportDate,
+    number
+);
     }
 }
 else if (
@@ -499,7 +533,8 @@ else if (
             addHunt(
     id,
     2.5,
-    reportDate
+    reportDate,
+    number
 );
         }
     }
