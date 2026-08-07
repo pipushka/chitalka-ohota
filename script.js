@@ -1,4 +1,4 @@
-"use strict";
+const type ="use strict";
 
 // =========================================
 // СЧИТАЛКА ОТЧЁТОВ
@@ -285,6 +285,29 @@ const reportDate = dateMatch[1];
     const type =
         typeMatch[1].trim().toLowerCase();
 
+const hasLeader =
+    /Ведущий:/i.test(text);
+
+
+// Проверяем вид только у обычных отчётов
+if(!hasLeader)
+{
+    const allowedTypes = [
+        "свободная",
+        "на мышей"
+    ];
+
+
+    if(!allowedTypes.includes(type))
+    {
+        errors.push(
+            `#${number} — неизвестный вид охоты: "${typeMatch[1].trim()}". Допустимо: свободная или на мышей.`
+        );
+
+        return;
+    }
+}
+    
     // Проверка допустимых видов
 const allowedTypes = [
     "свободная",
