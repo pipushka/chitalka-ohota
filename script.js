@@ -330,7 +330,7 @@ function checkFutureDate(reportNumber, text, reportDate)
     if(report > commentDate)
     {
         errors.push(
-            `#${reportNumber} — дата отчёта ${reportDate} не может быть позже даты комментария.`
+            `Привет из будущего. #${reportNumber} — дата отчёта ${reportDate} не может быть позже даты комментария.`
         );
     }
 }
