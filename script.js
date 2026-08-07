@@ -260,18 +260,29 @@ if(/Название команды:/i.test(text))
     //------------------------------------
     // Вид
     //------------------------------------
-    const dateMatch =
-    text.match(/Дата:\*{0,2}\s*(\d{2}\.\d{2}\.\d{4})/i);
+   const dateMatch =
+    text.match(/Дата:\s*\*?(\d{2}\.\d{2}\.\d{2,4})/i);
 
 
 if(!dateMatch)
 {
-    errors.push(`#${number} — не найдена дата. Скорее всего неправильно указан год`);
+    errors.push(`#${number} — не найдена дата.`);
     return;
 }
 
 
-const reportDate = dateMatch[1];
+let reportDate = dateMatch[1];
+
+
+// Если год короткий (26), превращаем в 2026
+let parts = reportDate.split(".");
+
+if(parts[2].length === 2)
+{
+    parts[2] = "20" + parts[2];
+}
+
+reportDate = parts.join(".");
     
     const typeMatch =
         text.match(/Вид:\s*([^;\n]+)/i);
