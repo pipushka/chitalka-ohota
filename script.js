@@ -389,7 +389,9 @@ const reportDate = dateMatch[1];
     //------------------------------------
 
     const multi =
-        text.match(/Участники:([\s\S]*?)(?=\n[A-ЯЁ]|$)/i);
+    text.match(
+        /Участники:([\s\S]*?)(?=Таскающие:|Север:|Ветер:|$)/i
+    );
 
     if(multi)
     {
@@ -425,7 +427,6 @@ const leader =
     text.match(
         /Ведущий:[\s\S]*?\[(\d+)\]\s*\(([\d.,]+)\)/i
     );
-
 
 if (leader)
 {
