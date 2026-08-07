@@ -253,7 +253,7 @@ function parseReport(number, text)
     // Вид
     //------------------------------------
     const dateMatch =
-    text.match(/Дата:\s*(\d{2}\.\d{2}\.\d{4})/i);
+    text.match(/Дата:\*{0,2}\s*(\d{2}\.\d{2}\.\d{4})/i);
 
 
 if(!dateMatch)
@@ -278,7 +278,7 @@ const reportDate = dateMatch[1];
         typeMatch[1].trim().toLowerCase();
 // пока север и ветер
 text = text.replace(
-    /\*\*(Север|Ветер):\*\*[\s\S]*?(?=\*\*[А-ЯЁ]|$)/gi,
+    /\*{0,2}(Север|Ветер):\*{0,2}[\s\S]*?(?=\*{0,2}[А-ЯЁ]|$)/gi,
     ""
 );
     //------------------------------------
@@ -313,8 +313,8 @@ text = text.replace(
 
     if(type.includes("мыш"))
     {
-        const participant =
-            text.match(/Участник:[\s\S]*?\[(\d+)\]\s*\(([\d.,]+)\)/i);
+       const single =
+    text.match(/\*{0,2}Участник:\*{0,2}([\s\S]*?)(?=\n\*{0,2}[А-ЯЁ]|$)/i);
 
         if(!participant)
         {
@@ -473,8 +473,8 @@ else if (
     // Таскающие
     //------------------------------------
 
-    const carriers =
-        text.match(/Таскающие:([\s\S]*?)(?=\n[A-ЯЁ]|$)/i);
+   const carriers =
+    text.match(/\*{0,2}Таскающие:\*{0,2}([\s\S]*?)(?=\n\*{0,2}[А-ЯЁ]|$)/i);
 
     if(carriers)
     {
