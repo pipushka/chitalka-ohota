@@ -1,10 +1,10 @@
 "use strict";
 
-// =======================================
+// =========================================
 // СЧИТАЛКА ОТЧЁТОВ
-// =======================================
+// =========================================
 
-// ---------- Элементы ---------
+// ---------- Элементы ----------
 
 const reportsArea = document.getElementById("reports");
 const calculateBtn = document.getElementById("calculateBtn");
@@ -28,83 +28,26 @@ function createPlayer(id)
 {
     if (!players[id])
     {
-       players[id] =
-{
-    id: id,
-    hunt: 0,
-    mouse: 0,
-    lead: 0,
-    dates: {}
-};
-}
+        players[id] =
+        {
+            id: id,
+            hunt: 0,
+            mouse: 0,
+            lead: 0
+        };
+    }
 
     return players[id];
 }
 
-function addHunt(id, value, date)
+function addHunt(id, value)
 {
-    const player = createPlayer(id);
-
-
-    if(!player.dates[date])
-    {
-        player.dates[date] =
-        {
-            hunt: 0,
-            mouse: 0
-        };
-    }
-
-
-    let free =
-        5 - player.dates[date].hunt;
-
-
-    if(free <= 0)
-        return;
-
-
-    let result =
-        Math.min(value, free);
-
-
-    player.dates[date].hunt += result;
-
-    player.hunt += result;
+    createPlayer(id).hunt += value;
 }
 
-
-
-function addMouse(id, value, date)
+function addMouse(id, value)
 {
-    const player = createPlayer(id);
-
-
-    if(!player.dates[date])
-    {
-        player.dates[date] =
-        {
-            hunt: 0,
-            mouse: 0
-        };
-    }
-
-
-    let free =
-        5 - player.dates[date].mouse;
-
-
-    if(free <= 0)
-        return;
-
-
-    let result =
-        Math.min(value, free);
-
-
-    player.dates[date].mouse += result;
-
-    player.mouse += result;
+    createPlayer(id).mouse += value;
 }
 
 function addLead(id)
@@ -238,20 +181,7 @@ function calculate()
     {
         parseReport(report.number, report.text);
     }
-const dateMatch =
-    text.match(/Дата:\s*([^;\n]+)/i);
 
-
-if(!dateMatch)
-{
-    errors.push(`#${number} — отсутствует дата.`);
-    return;
-}
-
-
-const reportDate =
-    dateMatch[1].trim();
-    
     drawErrors();
     drawResults();
 }
@@ -259,6 +189,9 @@ const reportDate =
 // =========================================
 // Пока пусто
 // =========================================
+
+function parseReport(number, text)
+{
     //------------------------------------
     // Вид
     //------------------------------------
@@ -320,8 +253,8 @@ const reportDate =
         const points =
             Number(participant[2].replace(",", "."));
 
-      function addMouse(id, value, date)
-{
+        addMouse(id, points);
+
         return;
     }
 
@@ -350,8 +283,8 @@ const reportDate =
                 continue;
             }
 
-            function addHunt(id, value, date)
-{
+            addHunt(person.id, person.points);
+        }
     }
 
     //------------------------------------
@@ -379,8 +312,8 @@ const reportDate =
                 continue;
             }
 
-           function addHunt(id, value, date)
-{
+            addHunt(person.id, person.points);
+        }
     }
 
     //------------------------------------
@@ -427,8 +360,8 @@ if (leader)
 
     if (!found)
     {
-       function addHunt(id, value, date)
-{
+        addHunt(id, points);
+    }
 }
 else if (
     type.includes("утрен") ||
@@ -454,7 +387,7 @@ else if (
 
         for(const id of ids)
         {
-            addHunt(id,2.5,reportDate);
+            addHunt(id,2.5);
         }
     }
 
