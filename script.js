@@ -308,20 +308,6 @@ if(!hasLeader)
     }
 }
     
-    // Проверка допустимых видов
-const allowedTypes = [
-    "свободная",
-    "на мышей"
-];
-
-if(!allowedTypes.includes(type))
-{
-    errors.push(
-        `#${number} — неизвестный вид охоты: "${typeMatch[1].trim()}". Допустимо: свободная или на мышей.`
-    );
-
-    return;
-}
     
 // пока север и ветер
 text = text.replace(
