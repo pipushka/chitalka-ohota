@@ -405,22 +405,31 @@ const hasLeader =
     /\*{0,2}Ведущий\*{0,2}\s*:/i.test(text);
 
 
-// Допустимые виды зависят от формата отчёта
-const allowedTypes = hasLeader
-    ? [
+// Проверяем допустимый вид отчёта
+let allowedTypes;
+
+if (hasLeader)
+{
+    // Отчёты с ведущим
+    allowedTypes = [
         "утренняя",
         "вечерняя",
         "дневная",
         "ночная"
-    ]
-    : [
+    ];
+}
+else
+{
+    // Обычные отчёты
+    allowedTypes = [
         "свободная",
         "на мышей"
     ];
+}
 
 
-// Проверяем, что вид действительно допустимый
-if(!allowedTypes.includes(type))
+// Вид должен полностью совпадать с одним из допустимых
+if (!allowedTypes.includes(type))
 {
     errors.push(
         `#${number} — неизвестный вид охоты: "${typeMatch[1].trim()}".`
@@ -455,8 +464,6 @@ if(
     if(
         type.includes("утрен") ||
         type.includes("вечер") ||
-        type.includes("ноч") ||
-        type.includes("днев")
     )
     {
         if(!/Место охоты:/i.test(text))
