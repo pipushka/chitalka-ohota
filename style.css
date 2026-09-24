@@ -507,3 +507,216 @@ tbody tr:hover{
     }
 
 }
+
+/* =====================================================
+   ВКЛАДКИ
+===================================================== */
+
+.main-tabs{
+    display:flex;
+    gap:8px;
+
+    background:var(--panel);
+
+    border:1px solid var(--border);
+
+    padding:8px;
+}
+
+
+.main-tab{
+    flex:1;
+
+    background:#252a32;
+
+    border:1px solid var(--border);
+
+    color:var(--text2);
+
+    padding:13px 18px;
+
+    font-size:16px;
+
+    font-weight:600;
+
+    cursor:pointer;
+
+    transition:.15s;
+}
+
+
+.main-tab:hover{
+    filter:brightness(1.15);
+}
+
+
+.main-tab.active{
+    background:#207342;
+
+    border-color:#299653;
+
+    color:#fff;
+}
+
+
+
+/* =====================================================
+   СКРЫТИЕ / ПОКАЗ ВКЛАДОК
+===================================================== */
+
+.tab-content{
+    display:none;
+}
+
+
+.tab-content.active{
+    display:flex;
+
+    flex-direction:column;
+
+    gap:18px;
+}
+
+
+
+/* =====================================================
+   БЛОКИ БОГ
+===================================================== */
+
+.bog-special-section{
+    background:var(--panel);
+
+    border:1px solid var(--border);
+
+    padding:18px;
+}
+
+
+.bog-special-section .result-header{
+    margin-bottom:12px;
+}
+
+
+.bog-special-section .result-header h2{
+    margin:0;
+}
+
+
+.bog-special-section .result-header span{
+    color:var(--text2);
+
+    font-size:14px;
+}
+
+
+
+/* =====================================================
+   СПЕЦИАЛЬНЫЙ БОКС
+===================================================== */
+
+.special-box{
+    min-height:70px;
+
+    max-height:300px;
+
+    overflow-y:auto;
+
+    background:#101214;
+
+    border:1px solid var(--border);
+
+    padding:10px;
+}
+
+
+.special-item{
+    color:#e8e8e8;
+
+    background:#211719;
+
+    border-left:3px solid var(--red);
+
+    padding:9px;
+
+    margin-bottom:6px;
+
+    line-height:1.4;
+}
+
+
+.special-item:last-child{
+    margin-bottom:0;
+}
+
+
+
+/* =====================================================
+   ВРЕМЯ ДОЗОРА
+===================================================== */
+
+.watchCell{
+    color:#75c9dc;
+
+    font-weight:600;
+}
+
+
+
+/* =====================================================
+   БОГ — ТАБЛИЦА
+===================================================== */
+
+#bogResultsTable th:nth-child(1){
+    width:20%;
+}
+
+
+#bogResultsTable th:nth-child(2),
+#bogResultsTable th:nth-child(3){
+    width:25%;
+}
+
+
+#bogResultsTable th:nth-child(4){
+    width:30%;
+}
+
+
+
+/* =====================================================
+   МОБИЛЬНАЯ ВЕРСИЯ
+===================================================== */
+
+@media(max-width:900px){
+
+    .main-tabs{
+        flex-direction:column;
+    }
+
+
+    .main-tab{
+        width:100%;
+    }
+
+
+    #bogResultsTable{
+        min-width:600px;
+    }
+
+
+    .results-section{
+        overflow-x:auto;
+    }
+
+
+    .bog-special-section{
+        overflow:hidden;
+    }
+
+
+    .special-box{
+        max-height:250px;
+    }
+}
+
+
