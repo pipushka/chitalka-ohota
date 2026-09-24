@@ -711,3 +711,93 @@ tbody tr:hover{
     }
 
 }
+
+/* =====================================================
+   БОГ — КНОПКИ
+===================================================== */
+
+#bogTab .buttons button,
+#bogTab #bogCalculateBtn,
+#bogTab #bogClearBtn,
+#bogTab #bogCopyBtn{
+    background:#22262d;
+    color:#e8e8e8;
+    border:1px solid #343a44;
+}
+
+
+#bogTab .buttons button:hover,
+#bogTab #bogCalculateBtn:hover,
+#bogTab #bogClearBtn:hover,
+#bogTab #bogCopyBtn:hover{
+    background:#2b3038;
+}
+
+
+/* =====================================================
+   БОГ — НЕОТПИСАННЫЕ ПАТРУЛИ
+===================================================== */
+
+#bogMissingPatrolsSection{
+    background:var(--panel);
+    border:1px solid var(--border);
+    padding:18px;
+}
+
+
+#bogMissingPatrols{
+    min-height:70px;
+    max-height:300px;
+    overflow-y:auto;
+
+    background:#101214;
+    border:1px solid var(--border);
+
+    padding:10px;
+}
+
+
+.bog-missing-patrol{
+    color:#e8e8e8;
+
+    background:#211719;
+
+    border-left:3px solid var(--red);
+
+    padding:9px;
+
+    margin-bottom:6px;
+
+    line-height:1.4;
+}
+
+
+.bog-missing-patrol:last-child{
+    margin-bottom:0;
+}
+
+
+/* =====================================================
+   БОГ — ТАБЛИЦА
+===================================================== */
+
+#bogResultsTable .idCell{
+    color:#67a8ff;
+    font-weight:bold;
+}
+
+
+#bogResultsTable .scoreCell{
+    color:#76db91;
+}
+
+
+#bogResultsTable .leadCell{
+    color:#e4c15a;
+}
+
+
+#bogResultsTable .watchCell{
+    color:#75c9dc;
+    font-weight:600;
+}
