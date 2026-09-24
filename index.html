@@ -1,120 +1,349 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Считалка отчётов</title>
 
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
 <div class="container">
 
     <header>
         <h1>🦴 Считалка отчётов</h1>
+
         <p>
-            Вставьте комментарии целиком и нажмите
-            <b>«Подсчитать»</b>.
+            Вставьте комментарии целиком и выберите нужную вкладку.
         </p>
     </header>
 
-    <section class="input-section">
 
-        <label for="reports">
-            Отчёты
-        </label>
+    <!-- ========================================= -->
+    <!-- ВКЛАДКИ -->
+    <!-- ========================================= -->
 
-        <textarea
+    <nav class="main-tabs">
+
+        <button
+            class="main-tab active"
+            data-tab="huntTab">
+            🦴 Охота
+        </button>
+
+        <button
+            class="main-tab"
+            data-tab="bogTab">
+            🛡️ БОГ
+        </button>
+
+    </nav>
+
+
+    <!-- ========================================= -->
+    <!-- ОХОТА -->
+    <!-- ========================================= -->
+
+    <main id="huntTab" class="tab-content active">
+
+        <section class="input-section">
+
+            <label for="reports">
+                Отчёты
+            </label>
+
+            <textarea
                 id="reports"
                 placeholder="Вставьте сюда комментарии..."
                 spellcheck="false"></textarea>
 
-        <div class="buttons">
+            <div class="buttons">
 
-            <button id="calculateBtn">
-                Подсчитать
-            </button>
+                <button id="calculateBtn">
+                    Подсчитать
+                </button>
 
-            <button id="clearBtn">
-                Очистить
-            </button>
+                <button id="clearBtn">
+                    Очистить
+                </button>
 
-        </div>
-
-    </section>
-
-    <section class="errors-section">
-
-        <h2>
-            ⚠ Ошибки
-        </h2>
-
-        <div id="errors" class="error-box">
-
-            <div class="placeholder">
-                Ошибок пока нет.
             </div>
 
-        </div>
+        </section>
 
-    </section>
 
-    <section class="results-section">
-
-        <div class="result-header">
+        <section class="errors-section">
 
             <h2>
-                📊 Результаты
+                ⚠ Ошибки
             </h2>
 
-            <span id="totalPlayers">
-                Игроков: 0
-            </span>
+            <div id="errors" class="error-box">
 
-        </div>
+                <div class="placeholder">
+                    Ошибок пока нет.
+                </div>
 
-        <table id="resultsTable">
+            </div>
 
-            <thead>
+        </section>
 
-            <tr>
 
-                <th>ID</th>
+        <section class="results-section">
 
-                <th>Баллы за дичь</th>
+            <div class="result-header">
 
-                <th>Ведения</th>
+                <h2>
+                    📊 Результаты
+                </h2>
 
-                <th>Баллы за мышей</th>
+                <span id="totalPlayers">
+                    Игроков: 0
+                </span>
 
-            </tr>
+            </div>
 
-            </thead>
 
-            <tbody id="resultsBody">
+            <table id="resultsTable">
 
-            <tr class="placeholderRow">
+                <thead>
 
-                <td colspan="4">
-                    Пока нет данных.
-                </td>
+                <tr>
 
-            </tr>
+                    <th>ID</th>
 
-            </tbody>
+                    <th>Баллы за дичь</th>
 
-        </table>
+                    <th>Ведения</th>
 
-         <button id="copyBtn">
+                    <th>Баллы за мышей</th>
+
+                </tr>
+
+                </thead>
+
+
+                <tbody id="resultsBody">
+
+                <tr class="placeholderRow">
+
+                    <td colspan="4">
+                        Пока нет данных.
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+
+            <button id="copyBtn">
                 Копировать результат
             </button>
-        
-    </section>
+
+        </section>
+
+    </main>
+
+
+
+    <!-- ========================================= -->
+    <!-- БОГ -->
+    <!-- ========================================= -->
+
+    <main id="bogTab" class="tab-content">
+
+        <section class="input-section">
+
+            <label for="bogReports">
+                Отчёты БОГ
+            </label>
+
+            <textarea
+                id="bogReports"
+                placeholder="Вставьте сюда комментарии с патрулями и дозорами..."
+                spellcheck="false"></textarea>
+
+
+            <div class="buttons">
+
+                <button id="bogCalculateBtn">
+                    Подсчитать
+                </button>
+
+                <button id="bogClearBtn">
+                    Очистить
+                </button>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ========================================= -->
+        <!-- ОШИБКИ -->
+        <!-- ========================================= -->
+
+        <section class="errors-section">
+
+            <h2>
+                ⚠ Ошибки
+            </h2>
+
+            <div id="bogErrors" class="error-box">
+
+                <div class="placeholder">
+                    Ошибок пока нет.
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ========================================= -->
+        <!-- НЕОТПИСАННЫЕ ПАТРУЛИ -->
+        <!-- ========================================= -->
+
+        <section
+            id="bogMissingPatrolsSection"
+            class="bog-special-section">
+
+            <div class="result-header">
+
+                <h2>
+                    🚨 Неотписанные патрули
+                </h2>
+
+                <span id="bogMissingPatrolsCount">
+                    0
+                </span>
+
+            </div>
+
+
+            <div
+                id="bogMissingPatrols"
+                class="special-box">
+
+                <div class="placeholder">
+                    Пока нет данных.
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ========================================= -->
+        <!-- ПУСТЫШКИ -->
+        <!-- ========================================= -->
+
+        <section
+            id="bogPlaceholderPatrolsSection"
+            class="bog-special-section">
+
+            <div class="result-header">
+
+                <h2>
+                    📝 Патрули-пустышки
+                </h2>
+
+                <span id="bogPlaceholderPatrolsCount">
+                    0
+                </span>
+
+            </div>
+
+
+            <div
+                id="bogPlaceholderPatrols"
+                class="special-box">
+
+                <div class="placeholder">
+                    Пустышек не найдено.
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- ========================================= -->
+        <!-- РЕЗУЛЬТАТЫ -->
+        <!-- ========================================= -->
+
+        <section class="results-section">
+
+            <div class="result-header">
+
+                <h2>
+                    📊 Результаты БОГ
+                </h2>
+
+                <span id="bogTotalPlayers">
+                    Игроков: 0
+                </span>
+
+            </div>
+
+
+            <table id="bogResultsTable">
+
+                <thead>
+
+                <tr>
+
+                    <th>ID</th>
+
+                    <th>Баллы за патрули</th>
+
+                    <th>Баллы за ведение</th>
+
+                    <th>Время дозора</th>
+
+                </tr>
+
+                </thead>
+
+
+                <tbody id="bogResultsBody">
+
+                <tr class="placeholderRow">
+
+                    <td colspan="4">
+                        Пока нет данных.
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+
+            <button id="bogCopyBtn">
+                Копировать результат
+            </button>
+
+        </section>
+
+    </main>
 
 </div>
+
 
 <script src="script.js"></script>
 
 </body>
 </html>
+```
