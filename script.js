@@ -1810,11 +1810,8 @@ function parseBogWatch(reportText, players, errors) {
     );
 
 
-    // --------------------------------------------------------
     // Только начало дозора.
-    // Такие комментарии не считаются.
-    // --------------------------------------------------------
-
+    // Такой комментарий не считается.
     if (!endValue) {
         return;
     }
@@ -1822,145 +1819,6 @@ function parseBogWatch(reportText, players, errors) {
 
     // --------------------------------------------------------
     // Обязательные поля
-    // --------------------------------------------------------
-
-    if (!startValue) {
-        errors.push(
-            "Дозор: отсутствует «Дата и время начала»."
-        );
-        return;
-    }
-
-    if (!placeValue) {
-        errors.push(
-            "Дозор: отсутствует «Место дозора»."
-        );
-        return;
-    }
-
-    if (!participantValue) {
-        errors.push(
-            "Дозор: отсутствует «Участник»."
-        );
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Даты
-    // --------------------------------------------------------
-
-    const startDate = parseBogDateTime(startValue);
-    const endDate = parseBogDateTime(endValue);
-
-    if (!startDate) {
-        errors.push(
-            `Дозор: неправильная дата начала «${startValue}».`
-        );
-        return;
-    }
-
-    if (!endDate) {
-        errors.push(
-            `Дозор: неправильная дата конца «${endValue}».`
-        );
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Конец не раньше начала
-    // --------------------------------------------------------
-
-    if (endDate <= startDate) {
-        errors.push(
-            `Дозор ${startValue}: дата конца раньше или совпадает с началом.`
-        );
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // ID участника
-    // --------------------------------------------------------
-
-    const ids = getBogIds(participantValue);
-
-    if (ids.length === 0) {
-        errors.push(
-            `Дозор ${startValue}: у участника нет ID.`
-        );
-        return;
-    }
-
-    const participantId = ids[0];
-
-
-    // --------------------------------------------------------
-    // Время дозора — только минуты
-    // --------------------------------------------------------
-
-    const milliseconds =
-        endDate.getTime() - startDate.getTime();
-
-    const minutes =
-        Math.floor(milliseconds / 60000);
-
-
-    addBogWatchTime(
-        players,
-        participantId,
-        minutes
-    );
-
-
-    // --------------------------------------------------------
-    // Проверка опоздания с ОТЧЁТОМ
-    //
-    // Если в начале блока присутствует дата публикации
-    // комментария, проверяем:
-    //
-    // публикация > конец дозора + 12 часов
-    // --------------------------------------------------------
-
-    const publicationDate =
-        getBogPublicationDate(reportText);
-
-    if (publicationDate) {
-
-        const lateLimit =
-            endDate.getTime() +
-            (BOG_LATE_HOURS * 60 * 60 * 1000);
-
-        if (publicationDate.getTime() > lateLimit) {
-
-            const lateHours =
-                (
-                    publicationDate.getTime() -
-                    endDate.getTime()
-                ) / (60 * 60 * 1000);
-
-            errors.push(
-                `Дозор ${startValue} — ${endValue}: отчёт отписан спустя ${formatBogNumber(lateHours)} ч. после окончания.`
-            );
-        }
-    }
-}
-
-
-    // --------------------------------------------------------
-    // Только начало дозора
-    //
-    // Такие комментарии вообще не считаются.
-    // --------------------------------------------------------
-
-    if (!endValue) {
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Проверка обязательных данных
     // --------------------------------------------------------
 
     if (!startValue) {
@@ -2036,14 +1894,14 @@ function parseBogWatch(reportText, players, errors) {
 
 
     // --------------------------------------------------------
-    // Время ТОЛЬКО В МИНУТАХ
+    // Время дозора — только минуты
     // --------------------------------------------------------
 
-    const milliseconds = endDate.getTime() - startDate.getTime();
+    const milliseconds =
+        endDate.getTime() - startDate.getTime();
 
-    const minutes = Math.floor(
-        milliseconds / 60000
-    );
+    const minutes =
+        Math.floor(milliseconds / 60000);
 
 
     addBogWatchTime(
@@ -2051,6 +1909,38 @@ function parseBogWatch(reportText, players, errors) {
         participantId,
         minutes
     );
+
+
+    // --------------------------------------------------------
+    // Проверяем, не был ли дозор отписан позже 12 часов
+    // после его окончания
+    // --------------------------------------------------------
+
+    const publicationDate =
+        getBogPublicationDate(reportText);
+
+    if (publicationDate) {
+
+        const twelveHours =
+            12 * 60 * 60 * 1000;
+
+        const lateLimit =
+            endDate.getTime() + twelveHours;
+
+
+        if (publicationDate.getTime() > lateLimit) {
+
+            const lateHours =
+                (
+                    publicationDate.getTime() -
+                    endDate.getTime()
+                ) / (60 * 60 * 1000);
+
+            errors.push(
+                `Дозор ${startValue} — ${endValue}: отчёт отписан спустя ${formatBogNumber(lateHours)} ч. после окончания.`
+            );
+        }
+    }
 }
 
 // ------------------------------------------------------------
