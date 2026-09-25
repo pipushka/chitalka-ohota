@@ -1245,16 +1245,45 @@ function isBogWatchHeader(line) {
 // ------------------------------------------------------------
 // Разделение текста на отчёты
 // ------------------------------------------------------------
-
 function splitBogReports(text) {
+
     const lines = String(text || "").split("\n");
 
     const reports = [];
+
     let current = null;
+    let pendingCommentNumber = null;
+    let pendingPublicationDate = null;
 
     for (let i = 0; i < lines.length; i++) {
+
         const originalLine = lines[i];
         const cleanLine = cleanBogText(originalLine);
+
+
+        // ----------------------------------------------------
+        // Ищем номер комментария ПЕРЕД отчётом
+        //
+        // Например:
+        // #78 25 сентября в 20:55
+        // ----------------------------------------------------
+
+        const commentMatch = originalLine.match(
+            /#(\d+)\s+(\d{1,2})\s+([а-яё]+)\s+в\s+(\d{1,2})[:.](\d{2})/i
+        );
+
+        if (commentMatch) {
+
+            pendingCommentNumber = commentMatch[1];
+
+            pendingPublicationDate =
+                parseBogPublicationLine(originalLine);
+        }
+
+
+        // ----------------------------------------------------
+        // Начало ПАТРУЛЯ
+        // ----------------------------------------------------
 
         if (isBogPatrolHeader(originalLine)) {
 
@@ -1264,11 +1293,21 @@ function splitBogReports(text) {
 
             current = {
                 type: "patrol",
+                commentNumber: pendingCommentNumber,
+                publicationDate: pendingPublicationDate,
                 lines: [originalLine]
             };
 
+            pendingCommentNumber = null;
+            pendingPublicationDate = null;
+
             continue;
         }
+
+
+        // ----------------------------------------------------
+        // Начало ДОЗОРА
+        // ----------------------------------------------------
 
         if (isBogWatchHeader(originalLine)) {
 
@@ -1278,25 +1317,35 @@ function splitBogReports(text) {
 
             current = {
                 type: "watch",
+                commentNumber: pendingCommentNumber,
+                publicationDate: pendingPublicationDate,
                 lines: [originalLine]
             };
 
+            pendingCommentNumber = null;
+            pendingPublicationDate = null;
+
             continue;
         }
+
+
+        // ----------------------------------------------------
+        // Остальные строки
+        // ----------------------------------------------------
 
         if (current) {
             current.lines.push(originalLine);
         }
     }
 
+
     if (current) {
         reports.push(current);
     }
 
+
     return reports;
 }
-
-
 // ------------------------------------------------------------
 // Получение значения поля
 // ------------------------------------------------------------
@@ -1427,35 +1476,55 @@ function parseBogDateTime(value) {
         return null;
     }
 
+
     let text = String(value)
         .trim()
-        .replace(",", " ");
+        .replace(/[;,]/g, " ")
+        .replace(/\s+/g, " ");
 
-    // 24.09 11:00
-    // 24.09.2026 11:00
-    // 24.09 11.00
+
+    // Разрешаем:
+    //
+    // 26.09 20:00
+    // 26.09 20.00
+    // 26.09. 20.00
+    // 26.09, 20:00
+    // 26.09.2026 20:00
+    // 26.09.2026 20.00
+    //
+    // Главное — понятные числа.
+
     const match = text.match(
-        /^(\d{1,2})\.(\d{1,2})(?:\.(\d{2,4}))?\s+(\d{1,2})[:.](\d{2})$/
+        /^(\d{1,2})\.(\d{1,2})\.?(?:\s+(\d{2,4}))?\s+(\d{1,2})[.:](\d{1,2})$/
     );
+
 
     if (!match) {
         return null;
     }
 
+
     const day = Number(match[1]);
     const month = Number(match[2]);
 
-    let year = match[3]
-        ? Number(match[3])
-        : new Date().getFullYear();
+    let year;
 
-    if (year < 100) {
-        year += 2000;
+    if (match[3]) {
+        year = Number(match[3]);
+
+        if (year < 100) {
+            year += 2000;
+        }
+    } else {
+        year = new Date().getFullYear();
     }
+
 
     const hour = Number(match[4]);
     const minute = Number(match[5]);
 
+
+    // Реальные границы
     if (
         month < 1 ||
         month > 12 ||
@@ -1469,6 +1538,7 @@ function parseBogDateTime(value) {
         return null;
     }
 
+
     const date = new Date(
         year,
         month - 1,
@@ -1479,7 +1549,9 @@ function parseBogDateTime(value) {
         0
     );
 
-    // Защита от 31.02 и подобных дат
+
+    // Проверяем, что JS не превратил,
+    // например, 31.02 в другую дату.
     if (
         date.getFullYear() !== year ||
         date.getMonth() !== month - 1 ||
@@ -1490,10 +1562,9 @@ function parseBogDateTime(value) {
         return null;
     }
 
+
     return date;
 }
-
-
 // ------------------------------------------------------------
 // Проверка необычного формата даты
 // Формат не блокирует расчёт
@@ -1543,15 +1614,19 @@ function parseBogMissingPatrol(text) {
 // Патруль
 // ------------------------------------------------------------
 
-function parseBogPatrol(reportText, players, errors, patrolReports) {
+function parseBogPatrol(
+    reportText,
+    players,
+    errors,
+    patrolReports,
+    reportInfo
+) {
 
-    // Если это старый placeholder — больше не считаем его
-    // обычным патрулём.
-    const missing = parseBogMissingPatrol(reportText);
+    const commentNumber =
+        reportInfo && reportInfo.commentNumber
+            ? `#${reportInfo.commentNumber}`
+            : "Патруль";
 
-    if (missing) {
-        return;
-    }
 
     const dateValue = getBogField(
         reportText,
@@ -1573,28 +1648,16 @@ function parseBogPatrol(reportText, players, errors, patrolReports) {
         "Участники"
     );
 
+
     // --------------------------------------------------------
-    // Север и Ветер намеренно НЕ читаем.
-    // Их отсутствие НЕ является ошибкой.
+    // Пустышка:
+    // Патруль 18 2 маршрут -
     // --------------------------------------------------------
 
-    if (!dateValue) {
-        errors.push("Патруль: отсутствует «Дата и время».");
-        return;
-    }
+    const missing =
+        parseBogMissingPatrol(reportText);
 
-    if (!routeValue) {
-        errors.push("Патруль: отсутствует «Маршрут».");
-        return;
-    }
-
-    if (!leaderValue) {
-        errors.push("Патруль: отсутствует «Ведущий».");
-        return;
-    }
-
-    if (!participantsValue) {
-        errors.push("Патруль: отсутствует «Участники».");
+    if (missing) {
         return;
     }
 
@@ -1603,13 +1666,67 @@ function parseBogPatrol(reportText, players, errors, patrolReports) {
     // Дата
     // --------------------------------------------------------
 
-    const patrolDate = parseBogDateTime(dateValue);
+    if (!dateValue) {
+
+        errors.push(
+            `${commentNumber} — Патруль: отсутствует «Дата и время».`
+        );
+
+        return;
+    }
+
+
+    const patrolDate =
+        parseBogDateTime(dateValue);
+
 
     if (!patrolDate) {
+
         errors.push(
-            `Патруль: неправильная дата/время «${dateValue}».`
+            `${commentNumber} — Патруль: не удалось понять дату «${dateValue}».`
         );
+
         return;
+    }
+
+
+    // --------------------------------------------------------
+    // Проверяем дату отчёта относительно даты комментария
+    // --------------------------------------------------------
+
+    if (
+        reportInfo &&
+        reportInfo.publicationDate
+    ) {
+
+        const publicationDate =
+            reportInfo.publicationDate;
+
+
+        const reportDay =
+            new Date(
+                patrolDate.getFullYear(),
+                patrolDate.getMonth(),
+                patrolDate.getDate()
+            ).getTime();
+
+
+        const publicationDay =
+            new Date(
+                publicationDate.getFullYear(),
+                publicationDate.getMonth(),
+                publicationDate.getDate()
+            ).getTime();
+
+
+        if (reportDay > publicationDay) {
+
+            errors.push(
+                `${commentNumber} — Патруль: дата патруля ${dateValue} позже даты публикации комментария.`
+            );
+
+            return;
+        }
     }
 
 
@@ -1617,57 +1734,160 @@ function parseBogPatrol(reportText, players, errors, patrolReports) {
     // Маршрут
     // --------------------------------------------------------
 
-    const routeMatch = String(routeValue).match(/[12]/);
+    if (!routeValue) {
+
+        errors.push(
+            `${commentNumber} — Патруль ${dateValue}: отсутствует «Маршрут».`
+        );
+
+        return;
+    }
+
+
+    const routeMatch =
+        String(routeValue).match(/[12]/);
+
 
     if (!routeMatch) {
+
         errors.push(
-            `Патруль ${dateValue}: маршрут должен быть 1 или 2.`
+            `${commentNumber} — Патруль ${dateValue}: маршрут должен быть 1 или 2.`
         );
+
         return;
     }
 
-    const route = Number(routeMatch[0]);
+
+    const route =
+        Number(routeMatch[0]);
 
 
     // --------------------------------------------------------
-    // ID ведущего
+    // Ведущий
     // --------------------------------------------------------
 
-    const leaderIds = getBogIds(leaderValue);
+    if (!leaderValue) {
+
+        errors.push(
+            `${commentNumber} — Патруль ${dateValue}: отсутствует «Ведущий».`
+        );
+
+        return;
+    }
+
+
+    const leaderIds =
+        getBogIds(leaderValue);
+
 
     if (leaderIds.length === 0) {
+
         errors.push(
-            `Патруль ${dateValue}: у ведущего нет ID.`
+            `${commentNumber} — Патруль ${dateValue}: у ведущего нет ID.`
         );
-        return;
-    }
 
-    const leaderId = leaderIds[0];
-
-
-    // --------------------------------------------------------
-    // ID участников
-    // --------------------------------------------------------
-
-    const participantIds = getBogIds(participantsValue);
-
-    if (participantIds.length === 0) {
-        errors.push(
-            `Патруль ${dateValue}: у участников нет ID.`
-        );
         return;
     }
 
 
+    const leaderId =
+        leaderIds[0];
+
+
     // --------------------------------------------------------
-    // Сохраняем реальный патруль
+    // Участники
+    //
+    // Теперь отсутствие участников НЕ является ошибкой.
+    //
+    // Допустимо:
+    // -
+    // --
+    // —
+    // нет
+    // нет участников
+    // пустое поле
+    // --------------------------------------------------------
+
+    let participantIds = [];
+
+
+    if (participantsValue) {
+
+        const normalized =
+            participantsValue
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "");
+
+
+        const emptyParticipants =
+            normalized === "-" ||
+            normalized === "--" ||
+            normalized === "—" ||
+            normalized === "---" ||
+            normalized === "нет" ||
+            normalized === "нетучастников";
+
+
+        if (!emptyParticipants) {
+
+            participantIds =
+                getBogIds(participantsValue);
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Если написан какой-то текст участников,
+    // но ID нет — это уже настоящая ошибка.
+    // --------------------------------------------------------
+
+    if (
+        participantsValue &&
+        participantIds.length === 0
+    ) {
+
+        const normalized =
+            participantsValue
+                .trim()
+                .toLowerCase()
+                .replace(/\s+/g, "");
+
+
+        const emptyParticipants =
+            normalized === "-" ||
+            normalized === "--" ||
+            normalized === "—" ||
+            normalized === "---" ||
+            normalized === "нет" ||
+            normalized === "нетучастников";
+
+
+        if (!emptyParticipants) {
+
+            errors.push(
+                `${commentNumber} — Патруль ${dateValue}: в «Участники» не найден ID.`
+            );
+
+            return;
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Сохраняем патруль
     // --------------------------------------------------------
 
     patrolReports.push({
+
         date: patrolDate,
+
         dateText: dateValue,
+
         route: route,
+
         leaderId: leaderId,
+
         participantIds: participantIds
     });
 
@@ -1676,9 +1896,12 @@ function parseBogPatrol(reportText, players, errors, patrolReports) {
     // Участники
     // --------------------------------------------------------
 
-    const uniqueParticipants = [...new Set(participantIds)];
+    const uniqueParticipants =
+        [...new Set(participantIds)];
+
 
     for (const id of uniqueParticipants) {
+
         addBogPatrol(
             players,
             id,
@@ -1690,11 +1913,14 @@ function parseBogPatrol(reportText, players, errors, patrolReports) {
     // --------------------------------------------------------
     // Ведущий
     //
-    // Если его почему-то нет среди участников,
-    // всё равно засчитываем ему патруль + ведение.
+    // Ведущий всегда получает свои баллы,
+    // даже если участников нет.
     // --------------------------------------------------------
 
-    if (!uniqueParticipants.includes(leaderId)) {
+    if (
+        !uniqueParticipants.includes(leaderId)
+    ) {
+
         addBogPatrol(
             players,
             leaderId,
@@ -1787,7 +2013,18 @@ function getBogPublicationDate(text) {
 // Дозор
 // ------------------------------------------------------------
 
-function parseBogWatch(reportText, players, errors) {
+function parseBogWatch(
+    reportText,
+    players,
+    errors,
+    reportInfo
+) {
+
+    const commentNumber =
+        reportInfo && reportInfo.commentNumber
+            ? `#${reportInfo.commentNumber}`
+            : "Дозор";
+
 
     const startValue = getBogField(
         reportText,
@@ -1811,68 +2048,119 @@ function parseBogWatch(reportText, players, errors) {
 
 
     // Только начало дозора.
-    // Такой комментарий не считается.
+    // Это не ошибка и не считается.
     if (!endValue) {
         return;
     }
 
 
-    // --------------------------------------------------------
-    // Обязательные поля
-    // --------------------------------------------------------
-
     if (!startValue) {
+
         errors.push(
-            "Дозор: отсутствует «Дата и время начала»."
+            `${commentNumber} — Дозор: отсутствует «Дата и время начала».`
         );
+
         return;
     }
+
 
     if (!placeValue) {
+
         errors.push(
-            "Дозор: отсутствует «Место дозора»."
+            `${commentNumber} — Дозор: отсутствует «Место дозора».`
         );
+
         return;
     }
+
 
     if (!participantValue) {
+
         errors.push(
-            "Дозор: отсутствует «Участник»."
+            `${commentNumber} — Дозор: отсутствует «Участник».`
         );
+
         return;
     }
 
 
-    // --------------------------------------------------------
-    // Даты
-    // --------------------------------------------------------
+    const startDate =
+        parseBogDateTime(startValue);
 
-    const startDate = parseBogDateTime(startValue);
-    const endDate = parseBogDateTime(endValue);
+    const endDate =
+        parseBogDateTime(endValue);
+
 
     if (!startDate) {
+
         errors.push(
-            `Дозор: неправильная дата начала «${startValue}».`
+            `${commentNumber} — Дозор: не удалось понять дату начала «${startValue}».`
         );
+
         return;
     }
 
+
     if (!endDate) {
+
         errors.push(
-            `Дозор: неправильная дата конца «${endValue}».`
+            `${commentNumber} — Дозор: не удалось понять дату конца «${endValue}».`
         );
+
         return;
     }
 
 
     // --------------------------------------------------------
-    // Конец не может быть раньше начала
+    // Дата комментария не может быть раньше даты дозора
+    // --------------------------------------------------------
+
+    if (
+        reportInfo &&
+        reportInfo.publicationDate
+    ) {
+
+        const publicationDate =
+            reportInfo.publicationDate;
+
+
+        const startDay =
+            new Date(
+                startDate.getFullYear(),
+                startDate.getMonth(),
+                startDate.getDate()
+            ).getTime();
+
+
+        const publicationDay =
+            new Date(
+                publicationDate.getFullYear(),
+                publicationDate.getMonth(),
+                publicationDate.getDate()
+            ).getTime();
+
+
+        if (startDay > publicationDay) {
+
+            errors.push(
+                `${commentNumber} — Дозор: дата дозора позже даты публикации комментария.`
+            );
+
+            return;
+        }
+    }
+
+
+    // --------------------------------------------------------
+    // Конец должен быть после начала
     // --------------------------------------------------------
 
     if (endDate <= startDate) {
+
         errors.push(
-            `Дозор ${startValue}: дата конца раньше или совпадает с началом.`
+            `${commentNumber} — Дозор ${startValue}: дата конца раньше или совпадает с началом.`
         );
+
         return;
     }
 
@@ -1881,27 +2169,37 @@ function parseBogWatch(reportText, players, errors) {
     // ID участника
     // --------------------------------------------------------
 
-    const ids = getBogIds(participantValue);
+    const ids =
+        getBogIds(participantValue);
+
 
     if (ids.length === 0) {
+
         errors.push(
-            `Дозор ${startValue}: у участника нет ID.`
+            `${commentNumber} — Дозор ${startValue}: у участника нет ID.`
         );
+
         return;
     }
 
-    const participantId = ids[0];
+
+    const participantId =
+        ids[0];
 
 
     // --------------------------------------------------------
-    // Время дозора — только минуты
+    // Только минуты
     // --------------------------------------------------------
 
     const milliseconds =
-        endDate.getTime() - startDate.getTime();
+        endDate.getTime() -
+        startDate.getTime();
+
 
     const minutes =
-        Math.floor(milliseconds / 60000);
+        Math.floor(
+            milliseconds / 60000
+        );
 
 
     addBogWatchTime(
@@ -1912,32 +2210,34 @@ function parseBogWatch(reportText, players, errors) {
 
 
     // --------------------------------------------------------
-    // Проверяем, не был ли дозор отписан позже 12 часов
-    // после его окончания
+    // Опоздание с отпиской > 12 часов
     // --------------------------------------------------------
 
-    const publicationDate =
-        getBogPublicationDate(reportText);
-
-    if (publicationDate) {
-
-        const twelveHours =
-            12 * 60 * 60 * 1000;
+    if (
+        reportInfo &&
+        reportInfo.publicationDate
+    ) {
 
         const lateLimit =
-            endDate.getTime() + twelveHours;
+            endDate.getTime() +
+            12 * 60 * 60 * 1000;
 
 
-        if (publicationDate.getTime() > lateLimit) {
+        if (
+            reportInfo.publicationDate.getTime() >
+            lateLimit
+        ) {
 
             const lateHours =
                 (
-                    publicationDate.getTime() -
+                    reportInfo.publicationDate.getTime() -
                     endDate.getTime()
-                ) / (60 * 60 * 1000);
+                ) /
+                (60 * 60 * 1000);
+
 
             errors.push(
-                `Дозор ${startValue} — ${endValue}: отчёт отписан спустя ${formatBogNumber(lateHours)} ч. после окончания.`
+                `${commentNumber} — Дозор ${startValue} — ${endValue}: отчёт отписан спустя ${formatBogNumber(lateHours)} ч. после окончания.`
             );
         }
     }
@@ -2285,7 +2585,70 @@ function calculateBog() {
     const patrolReports = [];
     const missingPatrols = [];
 
+function parseBogPublicationLine(line) {
 
+    const match = String(line).match(
+        /#\d+\s+(\d{1,2})\s+([а-яё]+)\s+в\s+(\d{1,2})[:.](\d{2})/i
+    );
+
+    if (!match) {
+        return null;
+    }
+
+    const day = Number(match[1]);
+    const monthName = match[2].toLowerCase();
+    const hour = Number(match[3]);
+    const minute = Number(match[4]);
+
+
+    const months = {
+        "января": 0,
+        "февраля": 1,
+        "марта": 2,
+        "апреля": 3,
+        "мая": 4,
+        "июня": 5,
+        "июля": 6,
+        "августа": 7,
+        "сентября": 8,
+        "октября": 9,
+        "ноября": 10,
+        "декабря": 11
+    };
+
+
+    if (!(monthName in months)) {
+        return null;
+    }
+
+
+    const year = new Date().getFullYear();
+
+    const date = new Date(
+        year,
+        months[monthName],
+        day,
+        hour,
+        minute,
+        0,
+        0
+    );
+
+
+    if (
+        date.getDate() !== day ||
+        date.getMonth() !== months[monthName] ||
+        date.getHours() !== hour ||
+        date.getMinutes() !== minute
+    ) {
+        return null;
+    }
+
+
+    return date;
+}
+
+   
     // --------------------------------------------------------
     // Разбираем отчёты
     // --------------------------------------------------------
@@ -2315,23 +2678,25 @@ function calculateBog() {
         const reportText =
             report.lines.join("\n");
 
-        if (report.type === "patrol") {
+if (report.type === "patrol") {
 
-            parseBogPatrol(
-                reportText,
-                players,
-                errors,
-                patrolReports
-            );
+    parseBogPatrol(
+        reportText,
+        players,
+        errors,
+        patrolReports,
+        report
+    );
 
-        } else if (report.type === "watch") {
+} else if (report.type === "watch") {
 
-            parseBogWatch(
-                reportText,
-                players,
-                errors
-            );
-        }
+    parseBogWatch(
+        reportText,
+        players,
+        errors,
+        report
+    );
+}
     }
 
 
