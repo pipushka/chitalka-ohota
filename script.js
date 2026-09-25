@@ -1396,17 +1396,36 @@ function addBogPatrol(
             id
         );
 
+    /*
+    Обычное участие в патруле:
+    +1 в ПАТРУЛИ
+    */
+
     player.patrol +=
         BOG_PATROL_POINTS;
 
+    /*
+    Ведущий:
+    +2 в ПАТРУЛИ
+    +1,5 в ВЕДЕНИЯ
+    */
+
     if(isLeader)
     {
+        /*
+        У ведущего уже есть обычный
+        +1 за участие.
+
+        Добавляем ещё +1,
+        чтобы всего получилось +2.
+        */
+
+        player.patrol += 1;
+
         player.leader +=
-            BOG_LEADER_BONUS;
+            BOG_LEADING_POINTS;
     }
 }
-
-
 
 /* =====================================================
    Добавление дозора
@@ -1424,12 +1443,21 @@ function addBogWatchTime(
             id
         );
 
+    /*
+    За дозор даётся РОВНО количество минут.
+
+    30 минут -> +30
+    45 минут -> +45
+    60 минут -> +60
+    90 минут -> +90
+    120 минут -> +120
+
+    Никаких коэффициентов и перевода в часы.
+    */
+
     player.watch +=
-        (minutes / 60) *
-        BOG_LEADING_POINTS;
+        minutes;
 }
-
-
 
 /* =====================================================
    Парсер даты/времени БОГ
@@ -1754,59 +1782,85 @@ function parseBogPatrol(
 
     let participantIds = [];
 
-    if(participantsValue)
+/*
+=====================================================
+УЧАСТНИКИ ПАТРУЛЯ
+
+Допустимые варианты отсутствия участников:
+
+-
+--
+---
+—
+–
+нет
+нет участников
+
+Также поле "Участники" вообще может
+отсутствовать.
+
+Во всех этих случаях это НЕ ошибка.
+=====================================================
+*/
+
+if(participantsValue)
+{
+    const normalized =
+        participantsValue
+            .trim()
+            .toLowerCase()
+            .replace(/\s+/g, "");
+
+    const emptyParticipants =
+        normalized === "" ||
+        normalized === "-" ||
+        normalized === "--" ||
+        normalized === "---" ||
+        normalized === "—" ||
+        normalized === "–" ||
+        normalized === "нет" ||
+        normalized === "нетучастников";
+
+    /*
+    Если участников действительно нет —
+    просто продолжаем.
+    */
+
+    if(!emptyParticipants)
     {
-        const normalized =
-            participantsValue
-                .trim()
-                .toLowerCase()
-                .replace(/\s+/g, "");
+        participantIds =
+            getBogIds(
+                participantsValue
+            );
 
-        const emptyParticipants =
-            normalized === "-" ||
-            normalized === "--" ||
-            normalized === "—" ||
-            normalized === "---" ||
-            normalized === "нет" ||
-            normalized === "нетучастников";
+        /*
+        Здесь уже написаны настоящие люди.
+        Поэтому если ID нет вообще —
+        это ошибка.
+        */
 
-        if(!emptyParticipants)
-        {
-            participantIds =
-                getBogIds(
-                    participantsValue
-                );
-        }
-    }
-
-    if(
-        participantsValue &&
-        participantIds.length === 0
-    )
-    {
-        const normalized =
-            participantsValue
-                .trim()
-                .toLowerCase()
-                .replace(/\s+/g, "");
-
-        const emptyParticipants =
-            normalized === "-" ||
-            normalized === "--" ||
-            normalized === "—" ||
-            normalized === "---" ||
-            normalized === "нет" ||
-            normalized === "нетучастников";
-
-        if(!emptyParticipants)
+        if(participantIds.length === 0)
         {
             errors.push(
-                `${commentNumber} — Патруль ${dateValue}: в «Участники» не найден ID.`
+                `${commentNumber} — Патруль ${dateValue}: в «Участники» указаны люди, но ни у одного не найден ID.`
             );
 
             return;
         }
     }
+}
+
+/*
+Если participantsValue вообще отсутствует,
+это тоже нормально.
+
+Если там "-" / "—" / "--" —
+тоже нормально.
+
+Ошибка только тогда, когда там
+действительно указан человек,
+но нет ни одного ID.
+*/
 
     patrolReports.push(
     {
@@ -2143,15 +2197,32 @@ function checkBogRequiredPatrols(
         return;
     }
 
+    /*
+    =====================================================
+    Собираем данные по каждому дню.
+
+    Структура:
+
+    дата
+      ↓
+    время
+      ↓
+    маршруты [1, 2]
+    =====================================================
+    */
+
     const dates =
         new Map();
 
     for(const patrol of patrolReports)
     {
+        if(!patrol.date)
+            continue;
+
         const d =
             patrol.date;
 
-        const key =
+        const dateKey =
             d.getFullYear() +
             "-" +
             String(
@@ -2162,61 +2233,184 @@ function checkBogRequiredPatrols(
                 d.getDate()
             ).padStart(2, "0");
 
-        if(!dates.has(key))
+        if(!dates.has(dateKey))
         {
             dates.set(
-                key,
+                dateKey,
                 {
                     date:d,
-                    routes:{}
+                    times:{}
                 }
             );
         }
 
         const day =
-            dates.get(key);
+            dates.get(dateKey);
 
         const hour =
-            d.getHours();
+            String(
+                d.getHours()
+            ).padStart(2, "0");
 
         const minute =
-            d.getMinutes();
+            String(
+                d.getMinutes()
+            ).padStart(2, "0");
 
         const time =
-            String(hour).padStart(2, "0") +
+            hour +
             ":" +
-            String(minute).padStart(2, "0");
+            minute;
 
-        if(!day.routes[time])
-            day.routes[time] = 0;
+        if(!day.times[time])
+        {
+            day.times[time] =
+            {
+                1:false,
+                2:false
+            };
+        }
 
-        day.routes[time]++;
+        /*
+        =================================================
+        Определяем маршрут.
+
+        Поддерживаются:
+
+        1
+        2
+        1 маршрут
+        2 маршрут
+        маршрут 1
+        маршрут 2
+        =================================================
+        */
+
+        const routeText =
+            String(
+                patrol.route || ""
+            ).trim();
+
+        const routeMatch =
+            routeText.match(
+                /(?:^|\D)([12])(?:\D|$)/
+            );
+
+        if(routeMatch)
+        {
+            const routeNumber =
+                Number(
+                    routeMatch[1]
+                );
+
+            day.times[time][routeNumber] =
+                true;
+        }
     }
+
+    /*
+    =====================================================
+    Теперь проверяем каждый день.
+
+    Для каждого обязательного времени:
+    обязательно должны существовать:
+
+    маршрут 1
+    маршрут 2
+    =====================================================
+    */
 
     for(const day of dates.values())
     {
         for(const requiredTime of BOG_PATROL_TIMES)
         {
-            if(!day.routes[requiredTime])
-            {
-                const dateText =
-                    String(
-                        day.date.getDate()
-                    ).padStart(2, "0") +
-                    "." +
-                    String(
-                        day.date.getMonth() + 1
-                    ).padStart(2, "0");
+            const routes =
+                day.times[requiredTime];
 
-                missingPatrols.push(
-                    `${requiredTime} ${dateText}`
+            /*
+            Если в это время вообще ничего
+            не отписано — оба маршрута отсутствуют.
+            */
+
+            if(!routes)
+            {
+                addMissingBogPatrol(
+                    day.date,
+                    requiredTime,
+                    1,
+                    missingPatrols
+                );
+
+                addMissingBogPatrol(
+                    day.date,
+                    requiredTime,
+                    2,
+                    missingPatrols
+                );
+
+                continue;
+            }
+
+            /*
+            Маршрут 1 отсутствует.
+            */
+
+            if(!routes[1])
+            {
+                addMissingBogPatrol(
+                    day.date,
+                    requiredTime,
+                    1,
+                    missingPatrols
+                );
+            }
+
+            /*
+            Маршрут 2 отсутствует.
+            */
+
+            if(!routes[2])
+            {
+                addMissingBogPatrol(
+                    day.date,
+                    requiredTime,
+                    2,
+                    missingPatrols
                 );
             }
         }
     }
 }
 
+function addMissingBogPatrol(
+    date,
+    time,
+    route,
+    missingPatrols
+)
+{
+    const dateText =
+        String(
+            date.getDate()
+        ).padStart(2, "0") +
+        "." +
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0");
 
+    /*
+    Выводим именно в требуемом формате:
+
+    19.09 09 2 маршрут
+    */
+
+    const hour =
+        time.split(":")[0];
+
+    missingPatrols.push(
+        `${dateText} ${hour} ${route} маршрут`
+    );
+}
 
 /* =====================================================
    Вывод ошибок БОГ
@@ -2361,13 +2555,13 @@ function drawBogResults(players)
                 ${formatBogNumber(player.patrol)}
             </td>
 
-            <td class="leadCell">
-                ${formatBogNumber(player.leader)}
-            </td>
+       <td class="mouseCell">
+    ${formatBogNumber(player.watch)}
+</td>
 
-            <td class="mouseCell">
-                ${formatBogNumber(player.watch)}
-            </td>
+<td class="leadCell">
+    ${formatBogNumber(player.leader)}
+</td>
         `;
 
         bogResultsBody.appendChild(row);
