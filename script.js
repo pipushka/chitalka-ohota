@@ -1437,173 +1437,226 @@ function addBogWatchTime(
 
 function parseBogDateTime(value)
 {
-    if(!value)
+    if(value === undefined || value === null)
         return null;
 
-    let text =
-        String(value)
-        .trim()
-        .replace(/\s+/g, " ")
-        .replace(/[;]+$/g, "")
-        .trim();
+    let text = String(value).trim();
 
-    let match;
+    if(!text)
+        return null;
 
     /*
-       Формат:
+    =====================================================
+    БОГ — максимально свободный разбор даты и времени
 
-       19.09, 09:00
-       19.09, 9:00
-       19.09 09:00
-       19.09 — 09:00
-       19.09 - 09:00
-       19.09; 09:00
+    Нам НЕ важны:
+    . , ; : / - — пробелы и т.п.
+
+    Главное:
+    первые два числа = день + месяц
+    следующие два числа = часы + минуты
+
+    Примеры, которые понимаются одинаково:
+
+    19.09, 09:00
+    19.09 09:00
+    19/09 09.00
+    19-09 09:00
+    19 — 09 — 09:00
+    19 09 09 00
+    19.09, 9:00
+    19/09, 9.00
     */
 
-    match =
-        text.match(
-            /^(\d{1,2})\s*[.\/]\s*(\d{1,2})(?:\s*[.\/]\s*(\d{2,4}))?\s*(?:[,;]|[-—–])?\s*(\d{1,2})\s*[:.]\s*(\d{2})$/
-        );
+    /*
+    -----------------------------------------------------
+    1. Получаем все числа из строки
+    -----------------------------------------------------
+    */
 
-    if(match)
+    const numbers =
+        text.match(/\d+/g);
+
+    if(!numbers || numbers.length < 4)
+        return null;
+
+    /*
+    -----------------------------------------------------
+    2. Первые два числа — день и месяц
+    -----------------------------------------------------
+    */
+
+    const day =
+        Number(numbers[0]);
+
+    const month =
+        Number(numbers[1]);
+
+    /*
+    -----------------------------------------------------
+    3. Ищем время
+       
+       После дня и месяца может быть:
+       
+       09:00
+       9:00
+       09.00
+       09 00
+       09-00
+       
+       Поэтому просто берём следующие два числа.
+    -----------------------------------------------------
+    */
+
+    let hour =
+        Number(numbers[2]);
+
+    let minute =
+        Number(numbers[3]);
+
+    /*
+    -----------------------------------------------------
+    4. Иногда между датой и временем оказывается год.
+
+       Например:
+
+       19.09.2026 09:00
+
+       Тогда numbers:
+
+       [19, 09, 2026, 09, 00]
+
+       В этом случае пропускаем год.
+    -----------------------------------------------------
+    */
+
+    if(
+        hour > 23 &&
+        numbers.length >= 5
+    )
     {
-        let year =
-            match[3]
-                ? Number(match[3])
-                : new Date().getFullYear();
+        hour =
+            Number(numbers[3]);
 
-        if(year < 100)
-            year += 2000;
-
-        const day =
-            Number(match[1]);
-
-        const month =
-            Number(match[2]) - 1;
-
-        const hour =
-            Number(match[4]);
-
-        const minute =
-            Number(match[5]);
-
-        /*
-           Проверяем реальные границы,
-           чтобы условный 19.99 или 25:90
-           не считались датой.
-        */
-
-        if(
-            month < 0 ||
-            month > 11 ||
-            day < 1 ||
-            day > 31 ||
-            hour < 0 ||
-            hour > 23 ||
-            minute < 0 ||
-            minute > 59
-        )
-        {
-            return null;
-        }
-
-        const result =
-            new Date(
-                year,
-                month,
-                day,
-                hour,
-                minute,
-                0,
-                0
-            );
-
-        /*
-           Проверяем, что JS не "исправил"
-           несуществующую дату автоматически.
-        */
-
-        if(
-            result.getFullYear() !== year ||
-            result.getMonth() !== month ||
-            result.getDate() !== day ||
-            result.getHours() !== hour ||
-            result.getMinutes() !== minute
-        )
-        {
-            return null;
-        }
-
-        return result;
+        minute =
+            Number(numbers[4]);
     }
 
     /*
-       Дополнительный формат,
-       если дата и время записаны через слова
-       или с лишними пробелами.
+    -----------------------------------------------------
+    5. Проверяем диапазоны
+    -----------------------------------------------------
     */
 
-    match =
-        text.match(
-            /^(\d{1,2})\s*[.\/]\s*(\d{1,2})\s*(?:[,;]|[-—–])?\s*(\d{1,2})\s*[:.]\s*(\d{2})$/
-        );
-
-    if(match)
+    if(
+        day < 1 ||
+        day > 31
+    )
     {
-        const year =
-            new Date().getFullYear();
-
-        const day =
-            Number(match[1]);
-
-        const month =
-            Number(match[2]) - 1;
-
-        const hour =
-            Number(match[3]);
-
-        const minute =
-            Number(match[4]);
-
-        if(
-            month < 0 ||
-            month > 11 ||
-            day < 1 ||
-            day > 31 ||
-            hour < 0 ||
-            hour > 23 ||
-            minute < 0 ||
-            minute > 59
-        )
-        {
-            return null;
-        }
-
-        const result =
-            new Date(
-                year,
-                month,
-                day,
-                hour,
-                minute,
-                0,
-                0
-            );
-
-        if(
-            result.getMonth() !== month ||
-            result.getDate() !== day ||
-            result.getHours() !== hour ||
-            result.getMinutes() !== minute
-        )
-        {
-            return null;
-        }
-
-        return result;
+        return null;
     }
 
-    return null;
+    if(
+        month < 1 ||
+        month > 12
+    )
+    {
+        return null;
+    }
+
+    if(
+        hour < 0 ||
+        hour > 23
+    )
+    {
+        return null;
+    }
+
+    if(
+        minute < 0 ||
+        minute > 59
+    )
+    {
+        return null;
+    }
+
+    /*
+    -----------------------------------------------------
+    6. Год
+
+       Если год указан — используем его.
+       Если нет — текущий год.
+    -----------------------------------------------------
+    */
+
+    let year =
+        new Date().getFullYear();
+
+    if(numbers.length >= 5)
+    {
+        const possibleYear =
+            Number(numbers[2]);
+
+        if(
+            possibleYear >= 100 &&
+            possibleYear <= 9999
+        )
+        {
+            year = possibleYear;
+        }
+        else if(
+            possibleYear >= 0 &&
+            possibleYear <= 99 &&
+            hour === Number(numbers[3])
+        )
+        {
+            year =
+                2000 + possibleYear;
+        }
+    }
+
+    /*
+    -----------------------------------------------------
+    7. Создаём дату
+    -----------------------------------------------------
+    */
+
+    const result =
+        new Date(
+            year,
+            month - 1,
+            day,
+            hour,
+            minute,
+            0,
+            0
+        );
+
+    /*
+    -----------------------------------------------------
+    8. Проверяем, что дата действительно существует.
+
+       Например:
+
+       31.02
+
+       JS автоматически превратил бы её в март.
+       Нам это не нужно.
+    -----------------------------------------------------
+    */
+
+    if(
+        result.getFullYear() !== year ||
+        result.getMonth() !== month - 1 ||
+        result.getDate() !== day ||
+        result.getHours() !== hour ||
+        result.getMinutes() !== minute
+    )
+    {
+        return null;
+    }
+
+    return result;
 }
 /* =====================================================
    Парсер ПАТРУЛЯ
