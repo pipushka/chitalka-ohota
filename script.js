@@ -1793,8 +1793,8 @@ function parseBogWatch(
 {
     const commentNumber =
         report && report.commentNumber
-        ? `#${report.commentNumber}`
-        : "#?";
+            ? `#${report.commentNumber}`
+            : "#?";
 
     const startValue =
         getBogField(
@@ -1808,19 +1808,13 @@ function parseBogWatch(
             "Дата и время конца"
         );
 
-    const placeValue =
-        getBogField(
-            reportText,
-            "Место дозора"
-        );
-
     const participantValue =
         getBogField(
             reportText,
             "Участник"
         );
 
-    if(!startValue)
+    if (!startValue)
     {
         errors.push(
             `${commentNumber} — Дозор: отсутствует «Дата и время начала».`
@@ -1829,7 +1823,7 @@ function parseBogWatch(
         return;
     }
 
-    if(!endValue)
+    if (!endValue)
     {
         errors.push(
             `${commentNumber} — Дозор ${startValue}: отсутствует «Дата и время конца».`
@@ -1844,7 +1838,7 @@ function parseBogWatch(
     const endDate =
         parseBogDateTime(endValue);
 
-    if(!startDate)
+    if (!startDate)
     {
         errors.push(
             `${commentNumber} — Дозор ${startValue}: не удалось распознать начало дозора.`
@@ -1853,7 +1847,7 @@ function parseBogWatch(
         return;
     }
 
-    if(!endDate)
+    if (!endDate)
     {
         errors.push(
             `${commentNumber} — Дозор ${endValue}: не удалось распознать конец дозора.`
@@ -1862,38 +1856,16 @@ function parseBogWatch(
         return;
     }
 
-    if(endDate.getTime() < startDate.getTime())
+    /*
+    Если дозор перешёл через полночь,
+    конец относится к следующему дню.
+    */
+    if (endDate.getTime() < startDate.getTime())
     {
         endDate.setTime(
             endDate.getTime() +
             24 * 60 * 60 * 1000
         );
-    }
-
-    if(
-        endDate.getTime() ===
-        startDate.getTime()
-    )
-    {
-        errors.push(
-            `${commentNumber} — Дозор ${startValue}: начало и конец совпадают.`
-        );
-
-        return;
-    }
-
-    const participantIds =
-        getBogIds(
-            participantValue
-        );
-
-    if(participantIds.length === 0)
-    {
-        errors.push(
-            `${commentNumber} — Дозор ${startValue}: у участника не найден ID.`
-        );
-
-        return;
     }
 
     const minutes =
@@ -1903,7 +1875,7 @@ function parseBogWatch(
         ) /
         (60 * 1000);
 
-    if(minutes <= 0)
+    if (minutes <= 0)
     {
         errors.push(
             `${commentNumber} — Дозор ${startValue}: продолжительность должна быть больше нуля.`
@@ -1913,18 +1885,29 @@ function parseBogWatch(
     }
 
     /*
-    =====================================================
-    ВАЖНО:
-
-    В дозоре могут быть несколько ID.
-    Каждый участник получает время дозора.
-    =====================================================
+    Получаем участников.
     */
+    const participantIds =
+        getBogIds(
+            participantValue
+        );
 
+    if (participantIds.length === 0)
+    {
+        errors.push(
+            `${commentNumber} — Дозор ${startValue}: у участника не найден ID.`
+        );
+
+        return;
+    }
+
+    /*
+    Каждый участник получает время дозора.
+    */
     const uniqueParticipantIds =
         [...new Set(participantIds)];
 
-    for(const participantId of uniqueParticipantIds)
+    for (const participantId of uniqueParticipantIds)
     {
         addBogWatchTime(
             players,
@@ -1934,18 +1917,18 @@ function parseBogWatch(
     }
 
     /*
-    -----------------------------------------------------
-    Проверка опоздания с отчётом
-    -----------------------------------------------------
+    Проверяем опоздание с отчётом.
+    Допустимо 12 часов после окончания дозора.
     */
-
     const publicationDate =
         report &&
         report.publicationDate
-        ? report.publicationDate
-        : getBogPublicationDate(reportText);
+            ? report.publicationDate
+            : getBogPublicationDate(
+                reportText
+            );
 
-    if(publicationDate)
+    if (publicationDate)
     {
         const lateLimit =
             endDate.getTime() +
@@ -1956,7 +1939,7 @@ function parseBogWatch(
                 1000
             );
 
-        if(
+        if (
             publicationDate.getTime() >
             lateLimit
         )
@@ -1978,9 +1961,6 @@ function parseBogWatch(
         }
     }
 }
-
-
-
 /* =====================================================
    Числа БОГ
 ===================================================== */
