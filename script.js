@@ -1443,15 +1443,116 @@ function parseBogDateTime(value)
     let text =
         String(value)
         .trim()
-        .replace(/[,.]/g, ":");
+        .replace(/\s+/g, " ")
+        .replace(/[;]+$/g, "")
+        .trim();
 
-    let match =
+    let match;
+
+    /*
+       Формат:
+
+       19.09, 09:00
+       19.09, 9:00
+       19.09 09:00
+       19.09 — 09:00
+       19.09 - 09:00
+       19.09; 09:00
+    */
+
+    match =
         text.match(
-            /(\d{1,2})\s*[.:]\s*(\d{1,2})\s+(\d{1,2})\s*[.:]\s*(\d{2})/
+            /^(\d{1,2})\s*[.\/]\s*(\d{1,2})(?:\s*[.\/]\s*(\d{2,4}))?\s*(?:[,;]|[-—–])?\s*(\d{1,2})\s*[:.]\s*(\d{2})$/
         );
 
     if(match)
     {
+        let year =
+            match[3]
+                ? Number(match[3])
+                : new Date().getFullYear();
+
+        if(year < 100)
+            year += 2000;
+
+        const day =
+            Number(match[1]);
+
+        const month =
+            Number(match[2]) - 1;
+
+        const hour =
+            Number(match[4]);
+
+        const minute =
+            Number(match[5]);
+
+        /*
+           Проверяем реальные границы,
+           чтобы условный 19.99 или 25:90
+           не считались датой.
+        */
+
+        if(
+            month < 0 ||
+            month > 11 ||
+            day < 1 ||
+            day > 31 ||
+            hour < 0 ||
+            hour > 23 ||
+            minute < 0 ||
+            minute > 59
+        )
+        {
+            return null;
+        }
+
+        const result =
+            new Date(
+                year,
+                month,
+                day,
+                hour,
+                minute,
+                0,
+                0
+            );
+
+        /*
+           Проверяем, что JS не "исправил"
+           несуществующую дату автоматически.
+        */
+
+        if(
+            result.getFullYear() !== year ||
+            result.getMonth() !== month ||
+            result.getDate() !== day ||
+            result.getHours() !== hour ||
+            result.getMinutes() !== minute
+        )
+        {
+            return null;
+        }
+
+        return result;
+    }
+
+    /*
+       Дополнительный формат,
+       если дата и время записаны через слова
+       или с лишними пробелами.
+    */
+
+    match =
+        text.match(
+            /^(\d{1,2})\s*[.\/]\s*(\d{1,2})\s*(?:[,;]|[-—–])?\s*(\d{1,2})\s*[:.]\s*(\d{2})$/
+        );
+
+    if(match)
+    {
+        const year =
+            new Date().getFullYear();
+
         const day =
             Number(match[1]);
 
@@ -1464,51 +1565,46 @@ function parseBogDateTime(value)
         const minute =
             Number(match[4]);
 
-        const year =
-            new Date().getFullYear();
+        if(
+            month < 0 ||
+            month > 11 ||
+            day < 1 ||
+            day > 31 ||
+            hour < 0 ||
+            hour > 23 ||
+            minute < 0 ||
+            minute > 59
+        )
+        {
+            return null;
+        }
 
-        return new Date(
-            year,
-            month,
-            day,
-            hour,
-            minute,
-            0,
-            0
-        );
-    }
+        const result =
+            new Date(
+                year,
+                month,
+                day,
+                hour,
+                minute,
+                0,
+                0
+            );
 
-    match =
-        text.match(
-            /(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?\s+(\d{1,2})[:.](\d{2})/
-        );
+        if(
+            result.getMonth() !== month ||
+            result.getDate() !== day ||
+            result.getHours() !== hour ||
+            result.getMinutes() !== minute
+        )
+        {
+            return null;
+        }
 
-    if(match)
-    {
-        let year =
-            match[3]
-            ? Number(match[3])
-            : new Date().getFullYear();
-
-        if(year < 100)
-            year += 2000;
-
-        return new Date(
-            year,
-            Number(match[2]) - 1,
-            Number(match[1]),
-            Number(match[4]),
-            Number(match[5]),
-            0,
-            0
-        );
+        return result;
     }
 
     return null;
 }
-
-
-
 /* =====================================================
    Парсер ПАТРУЛЯ
 ===================================================== */
