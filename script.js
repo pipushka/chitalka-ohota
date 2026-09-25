@@ -1127,6 +1127,38 @@ function cleanBogText(text)
         .trim();
 }
 
+/* =====================================================
+   Номер комментария БОГ
+   Всегда пытаемся восстановить #ID,
+   даже если основной парсер его не сохранил.
+===================================================== */
+function getBogCommentLabel(
+    report,
+    reportText
+)
+{
+    if(
+        report &&
+        report.commentNumber !== null &&
+        report.commentNumber !== undefined &&
+        String(report.commentNumber).trim() !== ""
+    )
+    {
+        return `#${report.commentNumber}`;
+    }
+
+    const match =
+        String(reportText || "").match(
+            /#\s*(\d+)/i
+        );
+
+    if(match)
+    {
+        return `#${match[1]}`;
+    }
+
+    return "#?";
+}
 
 
 function isBogPatrolHeader(line)
@@ -1149,6 +1181,12 @@ function isBogWatchHeader(line)
    Разделение БОГ-отчётов
 ===================================================== */
 
+/* =====================================================
+   Разделение БОГ-отчётов
+
+   Каждый новый комментарий #ID начинает новый блок.
+   Поэтому номер комментария больше не теряется.
+===================================================== */
 function splitBogReports(text)
 {
     const lines =
@@ -1157,6 +1195,7 @@ function splitBogReports(text)
     const reports = [];
 
     let current = null;
+
     let pendingCommentNumber = null;
     let pendingPublicationDate = null;
 
@@ -1165,16 +1204,35 @@ function splitBogReports(text)
         const originalLine =
             lines[i];
 
-        const cleanLine =
-            cleanBogText(originalLine);
+        /*
+        -----------------------------------------------------
+        Ищем начало комментария.
 
+        Поддерживается:
+
+        #43 21 сентября в 9:22
+        #105 23 сентября в 23:17
+        **#105 23 сентября в 23:17
+        # 105 ...
+        -----------------------------------------------------
+        */
         const commentMatch =
             originalLine.match(
-                /#(\d+)\s+(\d{1,2})\s+([а-яё]+)\s+в\s+(\d{1,2})[:.](\d{2})/i
+                /#\s*(\d+)\s+(\d{1,2})\s+([а-яё]+)\s+в\s+(\d{1,2})[:.](\d{2})/i
             );
 
         if(commentMatch)
         {
+            /*
+            Если предыдущий отчёт ещё не был закрыт,
+            закрываем его перед новым #комментарием.
+            */
+            if(current)
+            {
+                reports.push(current);
+                current = null;
+            }
+
             pendingCommentNumber =
                 commentMatch[1];
 
@@ -1182,21 +1240,41 @@ function splitBogReports(text)
                 parseBogPublicationLine(
                     originalLine
                 );
+
+            /*
+            Саму строку #43 ... в lines не добавляем.
+            Она нужна для номера и даты публикации,
+            а не для полей отчёта.
+            */
+
+            continue;
         }
 
+        /*
+        -----------------------------------------------------
+        ПАТРУЛЬ
+        -----------------------------------------------------
+        */
         if(isBogPatrolHeader(originalLine))
         {
             if(current)
+            {
                 reports.push(current);
+            }
 
             current =
             {
                 type:"patrol",
+
                 commentNumber:
                     pendingCommentNumber,
+
                 publicationDate:
                     pendingPublicationDate,
-                lines:[originalLine]
+
+                lines:[
+                    originalLine
+                ]
             };
 
             pendingCommentNumber = null;
@@ -1205,19 +1283,31 @@ function splitBogReports(text)
             continue;
         }
 
+        /*
+        -----------------------------------------------------
+        ДОЗОР
+        -----------------------------------------------------
+        */
         if(isBogWatchHeader(originalLine))
         {
             if(current)
+            {
                 reports.push(current);
+            }
 
             current =
             {
                 type:"watch",
+
                 commentNumber:
                     pendingCommentNumber,
+
                 publicationDate:
                     pendingPublicationDate,
-                lines:[originalLine]
+
+                lines:[
+                    originalLine
+                ]
             };
 
             pendingCommentNumber = null;
@@ -1226,20 +1316,26 @@ function splitBogReports(text)
             continue;
         }
 
+        /*
+        -----------------------------------------------------
+        Остальные строки относятся к текущему отчёту.
+        -----------------------------------------------------
+        */
         if(current)
         {
-            current.lines.push(originalLine);
+            current.lines.push(
+                originalLine
+            );
         }
     }
 
     if(current)
+    {
         reports.push(current);
+    }
 
     return reports;
 }
-
-
-
 /* =====================================================
    Дата публикации комментария
 ===================================================== */
@@ -1698,10 +1794,12 @@ function parseBogPatrol(
     report
 )
 {
-    const commentNumber =
-        report.commentNumber
-        ? `#${report.commentNumber}`
-        : "#?";
+   
+const commentNumber =
+    getBogCommentLabel(
+        report,
+        reportText
+    );
 
     const dateValue =
         getBogField(
@@ -1780,36 +1878,61 @@ function parseBogPatrol(
     const leaderId =
         leaderIds[0];
 
-    let participantIds = [];
+   let participantIds = [];
 
 /*
 =====================================================
 УЧАСТНИКИ ПАТРУЛЯ
 
-Допустимые варианты отсутствия участников:
+Пустыми считаем:
 
 -
 --
 ---
 —
 –
+;
+;
+;
+-;
+—;
+;
 нет
 нет участников
 
-Также поле "Участники" вообще может
-отсутствовать.
+То есть любые комбинации,
+где фактически нет имени человека.
 
-Во всех этих случаях это НЕ ошибка.
+ВАЖНО:
+
+Если написано настоящее имя,
+но [ID] отсутствует —
+это ОШИБКА.
 =====================================================
 */
 
 if(participantsValue)
 {
-    const normalized =
+    let normalized =
         participantsValue
             .trim()
-            .toLowerCase()
-            .replace(/\s+/g, "");
+            .toLowerCase();
+
+    /*
+    Убираем пробелы и служебные разделители.
+
+    Например:
+
+    ";"      -> ""
+    "-;"     -> "-"
+    "—;"     -> "—"
+    "- ;"    -> "-"
+    "; ;"    -> ""
+    */
+    normalized =
+        normalized
+            .replace(/\s+/g, "")
+            .replace(/[;,:]+/g, "");
 
     const emptyParticipants =
         normalized === "" ||
@@ -1822,10 +1945,10 @@ if(participantsValue)
         normalized === "нетучастников";
 
     /*
-    Если участников действительно нет —
-    просто продолжаем.
+    -----------------------------------------------------
+    Если участников нет — это нормальный патруль.
+    -----------------------------------------------------
     */
-
     if(!emptyParticipants)
     {
         participantIds =
@@ -1834,11 +1957,13 @@ if(participantsValue)
             );
 
         /*
-        Здесь уже написаны настоящие люди.
-        Поэтому если ID нет вообще —
-        это ошибка.
-        */
+        -------------------------------------------------
+        Здесь уже действительно должны быть люди.
 
+        Если написано имя, но ни одного [ID] нет —
+        это ошибка.
+        -------------------------------------------------
+        */
         if(participantIds.length === 0)
         {
             errors.push(
@@ -1849,18 +1974,6 @@ if(participantsValue)
         }
     }
 }
-
-/*
-Если participantsValue вообще отсутствует,
-это тоже нормально.
-
-Если там "-" / "—" / "--" —
-тоже нормально.
-
-Ошибка только тогда, когда там
-действительно указан человек,
-но нет ни одного ID.
-*/
 
     patrolReports.push(
     {
@@ -1991,10 +2104,11 @@ function parseBogWatch(
     report
 )
 {
-    const commentNumber =
-        report && report.commentNumber
-            ? `#${report.commentNumber}`
-            : "#?";
+const commentNumber =
+    getBogCommentLabel(
+        report,
+        reportText
+    );
 
     const startValue =
         getBogField(
@@ -2398,20 +2512,27 @@ function addMissingBogPatrol(
             date.getMonth() + 1
         ).padStart(2, "0");
 
-    /*
-    Выводим именно в требуемом формате:
+    const hour =
+        String(
+            date.getHours()
+        ).padStart(2, "0");
 
-    19.09 09 2 маршрут
+    const minute =
+        String(
+            date.getMinutes()
+        ).padStart(2, "0");
+
+    /*
+    Единый удобный формат:
+
+    21.09, 09:00 — 1 маршрут
+    21.09, 09:00 — 2 маршрут
     */
 
-    const hour =
-        time.split(":")[0];
-
     missingPatrols.push(
-        `${dateText} ${hour} ${route} маршрут`
+        `${dateText}, ${hour}:${minute} — ${route} маршрут`
     );
 }
-
 /* =====================================================
    Вывод ошибок БОГ
 ===================================================== */
