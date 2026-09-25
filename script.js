@@ -1173,15 +1173,8 @@ drawResults();
 
 
 /* =====================================================
-   =====================================================
    БОГ
-   =====================================================
    ===================================================== */
-
-
-/* =====================================================
-   НАСТРОЙКИ
-===================================================== */
 
 const BOG_PATROL_POINTS = 1;
 const BOG_LEADER_BONUS = 2;
@@ -1193,30 +1186,16 @@ const BOG_LATE_HOURS = 12;
    ЭЛЕМЕНТЫ
 ===================================================== */
 
-const bogReportsArea =
-    document.getElementById("bogReports");
+const bogReportsArea = document.getElementById("bogReports");
+const bogCalculateBtn = document.getElementById("bogCalculateBtn");
+const bogClearBtn = document.getElementById("bogClearBtn");
+const bogCopyBtn = document.getElementById("bogCopyBtn");
 
-const bogCalculateBtn =
-    document.getElementById("bogCalculateBtn");
+const bogResultsBody = document.getElementById("bogResultsBody");
+const bogErrorsBox = document.getElementById("bogErrors");
+const bogTotalPlayers = document.getElementById("bogTotalPlayers");
 
-const bogClearBtn =
-    document.getElementById("bogClearBtn");
-
-const bogCopyBtn =
-    document.getElementById("bogCopyBtn");
-
-const bogResultsBody =
-    document.getElementById("bogResultsBody");
-
-const bogErrorsBox =
-    document.getElementById("bogErrors");
-
-const bogTotalPlayers =
-    document.getElementById("bogTotalPlayers");
-
-const bogMissingPatrols =
-    document.getElementById("bogMissingPatrols");
-
+const bogMissingPatrols = document.getElementById("bogMissingPatrols");
 const bogMissingPatrolsCount =
     document.getElementById("bogMissingPatrolsCount");
 
@@ -1227,259 +1206,194 @@ const bogMissingPatrolsCount =
 
 let bogPlayers = {};
 let bogErrors = [];
-
-let bogPatrolPlaceholders = [];
+let bogMissingPatrolList = [];
 
 
 /* =====================================================
-   ИГРОК
+   ОЧИСТКА BB-CODE
 ===================================================== */
 
-function createBogPlayer(id)
+function cleanBogText(text)
 {
-    if(!bogPlayers[id])
-    {
-        bogPlayers[id] =
-        {
-            id:id,
-            patrolPoints:0,
-            leadingPoints:0,
-            watchMinutes:0
-        };
-    }
-
-    return bogPlayers[id];
+    return text
+        .replace(/\[\/?u\]/gi, "")
+        .replace(/\[\/?b\]/gi, "")
+        .replace(/\*\*/g, "")
+        .replace(/\r/g, "")
+        .trim();
 }
 
 
 /* =====================================================
-   ПАТРУЛЬ
+   ОПРЕДЕЛЕНИЕ ЗАГОЛОВКА
 ===================================================== */
 
-function addBogPatrol(id, isLeader)
+function isBogPatrolHeader(line)
 {
-    if(!id)
-        return;
+    const value =
+        cleanBogText(line)
+            .replace(/[.:;]/g, "")
+            .trim()
+            .toLowerCase();
 
-    const player =
-        createBogPlayer(id);
-
-
-    /*
-       Обычный участник:
-       +1 балл
-    */
-
-    player.patrolPoints +=
-        BOG_PATROL_POINTS;
+    return value === "патруль";
+}
 
 
-    /*
-       Ведущий:
-       +2 к обычным баллам
-       +1.5 в отдельную колонку ведения
-    */
+function isBogWatchHeader(line)
+{
+    const value =
+        cleanBogText(line)
+            .replace(/[.:;]/g, "")
+            .trim()
+            .toLowerCase();
 
-    if(isLeader)
-    {
-        player.patrolPoints +=
-            BOG_LEADER_BONUS;
-
-        player.leadingPoints +=
-            BOG_LEADING_POINTS;
-    }
+    return value === "дозор";
 }
 
 
 /* =====================================================
-   ДОЗОР
-===================================================== */
+   РАЗБИВКА НА ОТЧЁТЫ
 
-function addBogWatchTime(id, minutes)
-{
-    if(!id || minutes <= 0)
-        return;
+   НИКАКИХ # ЗДЕСЬ НЕТ.
 
-    const player =
-        createBogPlayer(id);
+   Ищем только:
 
-    player.watchMinutes +=
-        minutes;
-}
-
-
-/* =====================================================
-   РАЗБИВКА ОТЧЁТОВ БОГ
-=====================================================
-
-   ВАЖНО:
-
-   Больше НЕ ищем:
-
-       #123
-       #124
-       #125
-
-   Отчёты определяются исключительно по началу:
-
-       **Патруль**
-       **Дозор**
-
-   Также принимаются:
-
-       [u][b]Патруль[/b][/u]
-       [u][b]Дозор[/b][/u]
+   **Патруль**
+   ...
+   **Дозор**
+   ...
 
 ===================================================== */
 
 function splitBogReports(text)
 {
+    const lines =
+        text.split("\n");
+
     const reports = [];
 
-    /*
-       Ищем начало заголовка.
-
-       Варианты:
-
-       **Патруль**
-       **Дозор**
-
-       [u][b]Патруль[/b][/u]
-       [u][b]Дозор[/b][/u]
-
-       Патруль
-       Дозор
-    */
-
-    const regex =
-        /(?=(?:^|\n)\s*(?:(?:\*{0,2}\s*Патруль\s*\*{0,2})|(?:\*{0,2}\s*Дозор\s*\*{0,2})|(?:\[u\]\s*\[b\]\s*Патруль\s*\[\/b\]\s*\[\/u\])|(?:\[u\]\s*\[b\]\s*Дозор\s*\[\/b\]\s*\[\/u\])))/g;
+    let current = null;
 
 
-    const starts = [];
-
-    let match;
-
-
-    while(
-        (match = regex.exec(text))
-        !== null
-    )
+    for(let i = 0; i < lines.length; i++)
     {
-        starts.push(
-            match.index
-        );
-    }
+        const line =
+            lines[i].trim();
 
 
-    /*
-       Если первый отчёт начинается
-       не с новой строки — проверяем отдельно.
-    */
-
-    if(
-        /^\s*(?:\*\*Патруль\*\*|\*\*Дозор\*\*|\[u\]\s*\[b\]\s*(?:Патруль|Дозор))/i
-            .test(text)
-    )
-    {
-        if(
-            starts.length === 0 ||
-            starts[0] !== 0
-        )
+        if(isBogPatrolHeader(line))
         {
-            starts.unshift(0);
-        }
-    }
+            if(current)
+                reports.push(current);
 
 
-    for(
-        let i = 0;
-        i < starts.length;
-        i++
-    )
-    {
-        const start =
-            starts[i];
-
-        const end =
-            i + 1 < starts.length
-            ? starts[i + 1]
-            : text.length;
-
-
-        const reportText =
-            text
-                .slice(start, end)
-                .trim();
-
-
-        if(!reportText)
-            continue;
-
-
-        const type =
-            getBogReportType(
-                reportText
-            );
-
-
-        if(type === "patrol")
-        {
-            reports.push(
+            current =
             {
                 type:"patrol",
-                text:reportText
-            });
+                lines:[line]
+            };
 
             continue;
         }
 
 
-        if(type === "watch")
+        if(isBogWatchHeader(line))
         {
-            reports.push(
+            if(current)
+                reports.push(current);
+
+
+            current =
             {
                 type:"watch",
-                text:reportText
-            });
+                lines:[line]
+            };
+
+            continue;
+        }
+
+
+        if(current)
+        {
+            current.lines.push(line);
         }
     }
 
 
-    return reports;
+    if(current)
+        reports.push(current);
+
+
+    return reports.map(report =>
+    {
+        return {
+            type:report.type,
+            text:report.lines.join("\n")
+        };
+    });
 }
 
 
 /* =====================================================
-   ТИП ОТЧЁТА
+   ПОЛЕ
+
+   Ищем строку:
+
+   **Участник:** Имя [123];
+
+   или:
+
+   [b]Участник:[/b] Имя [123];
+
 ===================================================== */
 
-function getBogReportType(text)
+function getBogField(text, fieldName)
 {
-    /*
-       Патруль должен начинаться именно
-       с заголовка, а не просто содержать
-       где-то слово "патруль".
-    */
+    const lines =
+        text.split("\n");
 
-    if(
-        /^\s*(?:\*\*\s*Патруль\s*\*\*|\[u\]\s*\[b\]\s*Патруль\s*\[\/b\]\s*\[\/u\])/i
-            .test(text)
-    )
+
+    const wanted =
+        fieldName.toLowerCase();
+
+
+    for(const originalLine of lines)
     {
-        return "patrol";
+        let line =
+            cleanBogText(
+                originalLine
+            );
+
+
+        const colon =
+            line.indexOf(":");
+
+
+        if(colon === -1)
+            continue;
+
+
+        const field =
+            line
+                .slice(0, colon)
+                .trim()
+                .toLowerCase();
+
+
+        if(field !== wanted)
+            continue;
+
+
+        return line
+            .slice(colon + 1)
+            .trim()
+            .replace(/[.;]\s*$/, "")
+            .trim();
     }
 
 
-    if(
-        /^\s*(?:\*\*\s*Дозор\s*\*\*|\[u\]\s*\[b\]\s*Дозор\s*\[\/b\]\s*\[\/u\])/i
-            .test(text)
-    )
-    {
-        return "watch";
-    }
-
-
-    return "unknown";
+    return null;
 }
 
 
@@ -1489,19 +1403,21 @@ function getBogReportType(text)
 
 function getBogIds(text)
 {
+    if(!text)
+        return [];
+
+
     const ids = [];
     const used = new Set();
 
     const regex =
         /\[(\d+)\]/g;
 
+
     let match;
 
 
-    while(
-        (match = regex.exec(text))
-        !== null
-    )
+    while((match = regex.exec(text)) !== null)
     {
         const id =
             match[1];
@@ -1534,46 +1450,82 @@ function getBogId(text)
 
 
 /* =====================================================
-   ПОЛЕ ОТЧЁТА
+   ИГРОК
 ===================================================== */
 
-function getBogField(text, field)
+function createBogPlayer(id)
 {
-    /*
-       Поля заканчиваются на ;
-
-       Поэтому сначала пробуем обычный вариант.
-    */
-
-    const regex =
-        new RegExp(
-            "(?:\\*{0,2})" +
-            field +
-            "(?:\\*{0,2})" +
-            "\\s*:\\s*" +
-            "([^;\\n]+)",
-            "i"
-        );
-
-
-    const match =
-        text.match(regex);
-
-
-    if(!match)
+    if(!id)
         return null;
 
 
-    return match[1]
-        .replace(/\*{1,2}/g, "")
-        .trim()
-        .replace(/[.;]+$/,"")
-        .trim();
+    if(!bogPlayers[id])
+    {
+        bogPlayers[id] =
+        {
+            id:id,
+            patrolPoints:0,
+            leadingPoints:0,
+            watchMinutes:0
+        };
+    }
+
+
+    return bogPlayers[id];
 }
 
 
 /* =====================================================
-   ДАТА И ВРЕМЯ
+   ПАТРУЛЬ
+===================================================== */
+
+function addBogPatrol(id, leader)
+{
+    const player =
+        createBogPlayer(id);
+
+
+    if(!player)
+        return;
+
+
+    player.patrolPoints +=
+        BOG_PATROL_POINTS;
+
+
+    if(leader)
+    {
+        player.patrolPoints +=
+            BOG_LEADER_BONUS;
+
+
+        player.leadingPoints +=
+            BOG_LEADING_POINTS;
+    }
+}
+
+
+/* =====================================================
+   ДОЗОР
+===================================================== */
+
+function addBogWatchTime(id, minutes)
+{
+    const player =
+        createBogPlayer(id);
+
+
+    if(!player)
+        return;
+
+
+    player.watchMinutes +=
+        minutes;
+}
+
+
+/* =====================================================
+   ДАТА
 ===================================================== */
 
 function parseBogDateTime(value)
@@ -1581,6 +1533,15 @@ function parseBogDateTime(value)
     if(!value)
         return null;
 
+
+    /*
+       Поддерживаются:
+
+       21.06, 15:00
+       21.06. 15.00
+       21.06 15:00
+       21.06.2026, 15:00
+    */
 
     const match =
         value.match(
@@ -1594,8 +1555,8 @@ function parseBogDateTime(value)
 
     let year =
         match[3]
-        ? Number(match[3])
-        : new Date().getFullYear();
+            ? Number(match[3])
+            : new Date().getFullYear();
 
 
     if(year < 100)
@@ -1613,21 +1574,6 @@ function parseBogDateTime(value)
 
     const minute =
         Number(match[5]);
-
-
-    if(
-        month < 0 ||
-        month > 11 ||
-        day < 1 ||
-        day > 31 ||
-        hour < 0 ||
-        hour > 23 ||
-        minute < 0 ||
-        minute > 59
-    )
-    {
-        return null;
-    }
 
 
     const date =
@@ -1657,30 +1603,16 @@ function parseBogDateTime(value)
 
 
 /* =====================================================
-   ПРОВЕРКА ОФОРМЛЕНИЯ ДАТЫ
+   ПРОВЕРКА ФОРМАТА ДАТЫ
+
+   Нестандартная точка не ломает расчёт.
 ===================================================== */
 
-function checkBogDateFormat(
-    reportText,
-    fieldName,
-    value
-)
+function checkBogDateFormat(fieldName, value)
 {
     if(!value)
         return;
 
-
-    /*
-       Допускаем:
-
-       03.03, 20:00
-       03.03. 20.00
-       03.03 20:00
-       03.03.2026, 20:00
-
-       То есть странная пунктуация
-       не ломает расчёт.
-    */
 
     const valid =
         /^\s*\d{1,2}\s*[./-]\s*\d{1,2}(?:\s*[./-]\s*\d{2,4})?\s*,?\s*\d{1,2}\s*[:.]\s*\d{2}\s*$/
@@ -1690,38 +1622,33 @@ function checkBogDateFormat(
     if(!valid)
     {
         bogErrors.push(
-            `БОГ — поле "${fieldName}" оформлено нестандартно: ${value}`
+            `БОГ — поле "${fieldName}" имеет необычный формат: ${value}`
         );
     }
 }
 
 
 /* =====================================================
-   ПАТРУЛЬ-ПУСТЫШКА
-=====================================================
+   ПУСТЫШКА ПАТРУЛЯ
 
    Например:
 
-       Патруль 18 2 маршрут -
+   Патруль 18 2 маршрут -
 
-   Такая запись НЕ выводится отдельным блоком.
+   Это НЕ обычный отчёт.
 
-   Она означает:
-
-       патруль №18,
-       маршрут 2,
-       нормальной отписи нет.
-
-   Поэтому она попадает только в
-   "Неотписанные патрули".
-
+   Он означает неотписанный патруль.
 ===================================================== */
 
-function parseBogPatrolPlaceholder(text)
+function parseBogMissingPatrol(text)
 {
+    const clean =
+        cleanBogText(text);
+
+
     const match =
-        text.match(
-            /Патруль\s*(?:№|#)?\s*(\d+)\s+([12])\s+маршрут\s*-?\s*$/i
+        clean.match(
+            /Патруль\s+(\d+)\s+([12])\s+маршрут\s*-\s*$/i
         );
 
 
@@ -1729,13 +1656,10 @@ function parseBogPatrolPlaceholder(text)
         return false;
 
 
-    bogPatrolPlaceholders.push(
+    bogMissingPatrolList.push(
     {
-        patrolNumber:
-            Number(match[1]),
-
-        route:
-            Number(match[2])
+        number:Number(match[1]),
+        route:Number(match[2])
     });
 
 
@@ -1749,6 +1673,14 @@ function parseBogPatrolPlaceholder(text)
 
 function parseBogPatrol(text)
 {
+    /*
+       Сначала проверяем пустышку.
+    */
+
+    if(parseBogMissingPatrol(text))
+        return;
+
+
     const dateValue =
         getBogField(
             text,
@@ -1796,7 +1728,7 @@ function parseBogPatrol(text)
     if(!dateValue)
     {
         bogErrors.push(
-            "Патруль — отсутствует поле \"Дата и время\"."
+            "Патруль — отсутствует поле «Дата и время»."
         );
     }
 
@@ -1804,7 +1736,7 @@ function parseBogPatrol(text)
     if(!routeValue)
     {
         bogErrors.push(
-            "Патруль — отсутствует поле \"Маршрут\"."
+            "Патруль — отсутствует поле «Маршрут»."
         );
     }
 
@@ -1812,7 +1744,7 @@ function parseBogPatrol(text)
     if(!leaderValue)
     {
         bogErrors.push(
-            "Патруль — отсутствует поле \"Ведущий\"."
+            "Патруль — отсутствует поле «Ведущий»."
         );
     }
 
@@ -1820,7 +1752,7 @@ function parseBogPatrol(text)
     if(!participantsValue)
     {
         bogErrors.push(
-            "Патруль — отсутствует поле \"Участники\"."
+            "Патруль — отсутствует поле «Участники»."
         );
     }
 
@@ -1828,7 +1760,7 @@ function parseBogPatrol(text)
     if(!northValue)
     {
         bogErrors.push(
-            "Патруль — отсутствует поле \"Север\"."
+            "Патруль — отсутствует поле «Север»."
         );
     }
 
@@ -1836,32 +1768,31 @@ function parseBogPatrol(text)
     if(!windValue)
     {
         bogErrors.push(
-            "Патруль — отсутствует поле \"Ветер\"."
+            "Патруль — отсутствует поле «Ветер»."
         );
     }
 
 
     /* ---------- Дата ---------- */
 
-    const date =
-        parseBogDateTime(
-            dateValue
-        );
-
-
     if(dateValue)
     {
         checkBogDateFormat(
-            text,
             "Дата и время",
             dateValue
         );
 
 
+        const date =
+            parseBogDateTime(
+                dateValue
+            );
+
+
         if(!date)
         {
             bogErrors.push(
-                `Патруль — неверная дата или время: ${dateValue}`
+                `Патруль — невозможно распознать дату: ${dateValue}`
             );
         }
     }
@@ -1871,13 +1802,13 @@ function parseBogPatrol(text)
 
     if(
         routeValue &&
-        !/^\s*[12]\s*$/.test(
-            routeValue
+        !/^[12]$/.test(
+            routeValue.trim()
         )
     )
     {
         bogErrors.push(
-            `Патруль — неверный маршрут: ${routeValue}`
+            `Патруль — маршрут должен быть 1 или 2: ${routeValue}`
         );
     }
 
@@ -1885,9 +1816,9 @@ function parseBogPatrol(text)
     /* ---------- Ведущий ---------- */
 
     const leaderId =
-        leaderValue
-        ? getBogId(leaderValue)
-        : null;
+        getBogId(
+            leaderValue
+        );
 
 
     if(
@@ -1896,54 +1827,35 @@ function parseBogPatrol(text)
     )
     {
         bogErrors.push(
-            "Патруль — у ведущего отсутствует ID."
+            "Патруль — у ведущего не найден ID."
         );
     }
 
 
     /* ---------- Участники ---------- */
 
-    let participantIds = [];
+    const participantIds =
+        getBogIds(
+            participantsValue
+        );
 
 
-    if(participantsValue)
+    if(
+        participantsValue &&
+        participantIds.length === 0 &&
+        participantsValue.trim() !== "-"
+    )
     {
-        if(
-            participantsValue.trim() !== "-" &&
-            participantsValue.trim() !== ""
-        )
-        {
-            participantIds =
-                getBogIds(
-                    participantsValue
-                );
-
-
-            if(
-                participantIds.length === 0
-            )
-            {
-                bogErrors.push(
-                    "Патруль — у участников не найдены ID."
-                );
-            }
-        }
+        bogErrors.push(
+            "Патруль — у участников не найдено ни одного ID."
+        );
     }
 
 
     /* ---------- Начисление ---------- */
 
-    for(
-        const id
-        of participantIds
-    )
+    for(const id of participantIds)
     {
-        /*
-           Если ведущий уже находится
-           среди участников — не начисляем
-           ему обычное участие второй раз.
-        */
-
         addBogPatrol(
             id,
             id === leaderId
@@ -1952,11 +1864,11 @@ function parseBogPatrol(text)
 
 
     /*
-       Ведущий может быть записан отдельно
-       от списка участников.
+       Ведущий не обязан быть повторно
+       записан в список участников.
 
-       Тогда добавляем его как участника
-       + бонус ведущего.
+       Поэтому если его там нет,
+       всё равно начисляем ему патруль.
     */
 
     if(
@@ -2009,8 +1921,8 @@ function parseBogWatch(text)
 
 
     /*
-       Если есть только начало,
-       полностью игнорируем запись.
+       Только начало дозора —
+       НЕ считаем.
     */
 
     if(
@@ -2025,7 +1937,7 @@ function parseBogWatch(text)
     if(!startValue)
     {
         bogErrors.push(
-            "Дозор — отсутствует поле \"Дата и время начала\"."
+            "Дозор — отсутствует поле «Дата и время начала»."
         );
     }
 
@@ -2033,7 +1945,7 @@ function parseBogWatch(text)
     if(!endValue)
     {
         bogErrors.push(
-            "Дозор — отсутствует поле \"Дата и время конца\"."
+            "Дозор — отсутствует поле «Дата и время конца»."
         );
     }
 
@@ -2041,7 +1953,7 @@ function parseBogWatch(text)
     if(!placeValue)
     {
         bogErrors.push(
-            "Дозор — отсутствует поле \"Место дозора\"."
+            "Дозор — отсутствует поле «Место дозора»."
         );
     }
 
@@ -2049,7 +1961,7 @@ function parseBogWatch(text)
     if(!participantValue)
     {
         bogErrors.push(
-            "Дозор — отсутствует поле \"Участник\"."
+            "Дозор — отсутствует поле «Участник»."
         );
     }
 
@@ -2069,7 +1981,6 @@ function parseBogWatch(text)
     if(startValue)
     {
         checkBogDateFormat(
-            text,
             "Дата и время начала",
             startValue
         );
@@ -2079,7 +1990,6 @@ function parseBogWatch(text)
     if(endValue)
     {
         checkBogDateFormat(
-            text,
             "Дата и время конца",
             endValue
         );
@@ -2095,80 +2005,69 @@ function parseBogWatch(text)
     }
 
 
-    /* ---------- Время ---------- */
-
     if(endDate <= startDate)
     {
         bogErrors.push(
-            "Дозор — время конца раньше или равно времени начала."
+            "Дозор — дата конца должна быть позже даты начала."
         );
 
         return;
     }
 
 
-    /* ---------- ID ---------- */
-
-    const id =
+    const participantId =
         getBogId(
             participantValue
         );
 
 
-    if(!id)
+    if(!participantId)
     {
         bogErrors.push(
-            "Дозор — у участника отсутствует ID."
+            "Дозор — у участника не найден ID."
         );
 
         return;
     }
 
 
-    /* ---------- Минуты ---------- */
-
     const minutes =
         Math.floor(
             (
-                endDate.getTime()
-                -
+                endDate.getTime() -
                 startDate.getTime()
             ) / 60000
         );
 
 
     addBogWatchTime(
-        id,
+        participantId,
         minutes
     );
 }
 
 
 /* =====================================================
-   ФОРМАТ ВРЕМЕНИ
+   ВРЕМЯ
 ===================================================== */
 
-function formatBogMinutes(
-    totalMinutes
-)
+function formatBogMinutes(minutes)
 {
-    totalMinutes =
+    minutes =
         Math.max(
             0,
-            Math.floor(
-                totalMinutes
-            )
+            Math.floor(minutes)
         );
 
 
     const hours =
         Math.floor(
-            totalMinutes / 60
+            minutes / 60
         );
 
 
-    const minutes =
-        totalMinutes % 60;
+    const mins =
+        minutes % 60;
 
 
     return (
@@ -2176,7 +2075,7 @@ function formatBogMinutes(
         +
         ":"
         +
-        String(minutes).padStart(2,"0")
+        String(mins).padStart(2,"0")
     );
 }
 
@@ -2187,12 +2086,8 @@ function formatBogMinutes(
 
 function formatBogNumber(value)
 {
-    if(
-        Number.isInteger(value)
-    )
-    {
+    if(Number.isInteger(value))
         return String(value);
-    }
 
 
     return String(value)
@@ -2207,10 +2102,8 @@ function formatBogNumber(value)
 function calculateBog()
 {
     bogPlayers = {};
-
     bogErrors = [];
-
-    bogPatrolPlaceholders = [];
+    bogMissingPatrolList = [];
 
 
     const text =
@@ -2220,26 +2113,16 @@ function calculateBog()
     if(!text)
     {
         bogErrors.push(
-            "Нет вставленных отчётов."
+            "Поле БОГ пустое."
         );
 
         drawBogErrors();
-
         drawBogResults();
-
         drawBogMissingPatrols();
 
         return;
     }
 
-
-    /*
-       Главное изменение:
-
-       теперь отчёты находятся
-       по заголовкам Патруль / Дозор,
-       а не по #.
-    */
 
     const reports =
         splitBogReports(
@@ -2250,59 +2133,28 @@ function calculateBog()
     if(reports.length === 0)
     {
         bogErrors.push(
-            "Не найдено ни одного отчёта. Нужны заголовки **Патруль** или **Дозор**."
+            "Не найдено ни одного отчёта. Каждый отчёт должен начинаться с «**Патруль**» или «**Дозор**»."
         );
 
         drawBogErrors();
-
         drawBogResults();
-
         drawBogMissingPatrols();
 
         return;
     }
 
 
-    for(
-        const report
-        of reports
-    )
+    for(const report of reports)
     {
-        /*
-           Пустышка:
-
-           Патруль 18 2 маршрут -
-
-           Она не является обычным
-           отчётом и не начисляет баллы.
-        */
-
-        if(
-            report.type === "patrol" &&
-            parseBogPatrolPlaceholder(
-                report.text
-            )
-        )
-        {
-            continue;
-        }
-
-
-        if(
-            report.type === "patrol"
-        )
+        if(report.type === "patrol")
         {
             parseBogPatrol(
                 report.text
             );
-
-            continue;
         }
 
 
-        if(
-            report.type === "watch"
-        )
+        if(report.type === "watch")
         {
             parseBogWatch(
                 report.text
@@ -2312,9 +2164,7 @@ function calculateBog()
 
 
     drawBogErrors();
-
     drawBogResults();
-
     drawBogMissingPatrols();
 }
 
@@ -2328,26 +2178,21 @@ function drawBogErrors()
     bogErrorsBox.innerHTML = "";
 
 
-    if(
-        bogErrors.length === 0
-    )
+    if(bogErrors.length === 0)
     {
         bogErrorsBox.innerHTML =
-            `<div class="success">Ошибок не найдено.</div>`;
+            `<div class="success">
+                Ошибок не найдено.
+            </div>`;
 
         return;
     }
 
 
-    for(
-        const error
-        of bogErrors
-    )
+    for(const error of bogErrors)
     {
         const div =
-            document.createElement(
-                "div"
-            );
+            document.createElement("div");
 
 
         div.className =
@@ -2374,56 +2219,45 @@ function drawBogMissingPatrols()
     bogMissingPatrols.innerHTML = "";
 
 
-    const list = [];
-
-
-    const used =
-        new Set();
+    const unique = [];
+    const used = new Set();
 
 
     for(
         const patrol
-        of bogPatrolPlaceholders
+        of bogMissingPatrolList
     )
     {
         const key =
-            patrol.patrolNumber
-            +
-            ":"
-            +
+            patrol.number +
+            ":" +
             patrol.route;
 
 
-        if(
-            used.has(key)
-        )
-        {
+        if(used.has(key))
             continue;
-        }
 
 
         used.add(key);
 
-        list.push(
+        unique.push(
             patrol
         );
     }
 
 
-    list.sort(
+    unique.sort(
         (a,b) =>
-            a.patrolNumber -
-            b.patrolNumber
+            a.number -
+            b.number
     );
 
 
     bogMissingPatrolsCount.textContent =
-        list.length;
+        unique.length;
 
 
-    if(
-        list.length === 0
-    )
+    if(unique.length === 0)
     {
         bogMissingPatrols.innerHTML =
             `<div class="placeholder">
@@ -2434,15 +2268,10 @@ function drawBogMissingPatrols()
     }
 
 
-    for(
-        const patrol
-        of list
-    )
+    for(const patrol of unique)
     {
         const div =
-            document.createElement(
-                "div"
-            );
+            document.createElement("div");
 
 
         div.className =
@@ -2450,7 +2279,7 @@ function drawBogMissingPatrols()
 
 
         div.textContent =
-            `Патруль ${patrol.patrolNumber} — ${patrol.route} маршрут`;
+            `Патруль ${patrol.number} — ${patrol.route} маршрут`;
 
 
         bogMissingPatrols.appendChild(
@@ -2469,13 +2298,13 @@ function drawBogResults()
     bogResultsBody.innerHTML = "";
 
 
-    const list =
+    const players =
         Object.values(
             bogPlayers
         );
 
 
-    list.sort(
+    players.sort(
         (a,b) =>
             Number(a.id) -
             Number(b.id)
@@ -2484,12 +2313,10 @@ function drawBogResults()
 
     bogTotalPlayers.textContent =
         "Игроков: " +
-        list.length;
+        players.length;
 
 
-    if(
-        list.length === 0
-    )
+    if(players.length === 0)
     {
         bogResultsBody.innerHTML =
             `
@@ -2504,15 +2331,10 @@ function drawBogResults()
     }
 
 
-    for(
-        const player
-        of list
-    )
+    for(const player of players)
     {
         const row =
-            document.createElement(
-                "tr"
-            );
+            document.createElement("tr");
 
 
         row.innerHTML =
@@ -2554,64 +2376,53 @@ function drawBogResults()
 
 function copyBogResult()
 {
-    const list =
+    const players =
         Object.values(
             bogPlayers
         );
 
 
-    if(
-        list.length === 0
-    )
-    {
+    if(players.length === 0)
         return;
-    }
 
 
-    list.sort(
+    players.sort(
         (a,b) =>
             Number(a.id) -
             Number(b.id)
     );
 
 
-    let result = "";
+    const result =
+        players
+            .map(player =>
+                [
+                    player.id,
 
+                    formatBogNumber(
+                        player.patrolPoints
+                    ),
 
-    for(
-        const player
-        of list
-    )
-    {
-        result +=
-            player.id
-            +
-            "\t"
-            +
-            formatBogNumber(
-                player.patrolPoints
+                    formatBogNumber(
+                        player.leadingPoints
+                    ),
+
+                    formatBogMinutes(
+                        player.watchMinutes
+                    )
+                ].join("\t")
             )
-            +
-            "\t"
-            +
-            formatBogNumber(
-                player.leadingPoints
-            )
-            +
-            "\t"
-            +
-            formatBogMinutes(
-                player.watchMinutes
-            )
-            +
-            "\n";
-    }
+            .join("\n");
 
 
     navigator.clipboard
         .writeText(result)
         .then(() =>
         {
+            const oldText =
+                bogCopyBtn.textContent;
+
+
             bogCopyBtn.textContent =
                 "Скопировано!";
 
@@ -2620,7 +2431,7 @@ function copyBogResult()
                 () =>
                 {
                     bogCopyBtn.textContent =
-                        "Копировать результат";
+                        oldText;
                 },
                 1500
             );
@@ -2640,7 +2451,7 @@ function clearBog()
 
     bogErrors = [];
 
-    bogPatrolPlaceholders = [];
+    bogMissingPatrolList = [];
 
 
     drawBogErrors();
@@ -2655,30 +2466,50 @@ function clearBog()
    КНОПКИ
 ===================================================== */
 
-bogCalculateBtn.addEventListener(
-    "click",
-    calculateBog
-);
+if(bogCalculateBtn)
+{
+    bogCalculateBtn.addEventListener(
+        "click",
+        calculateBog
+    );
+}
 
 
-bogClearBtn.addEventListener(
-    "click",
-    clearBog
-);
+if(bogClearBtn)
+{
+    bogClearBtn.addEventListener(
+        "click",
+        clearBog
+    );
+}
 
 
-bogCopyBtn.addEventListener(
-    "click",
-    copyBogResult
-);
+if(bogCopyBtn)
+{
+    bogCopyBtn.addEventListener(
+        "click",
+        copyBogResult
+    );
+}
 
 
 /* =====================================================
    НАЧАЛЬНОЕ СОСТОЯНИЕ
 ===================================================== */
 
-drawBogErrors();
+if(bogErrorsBox)
+{
+    drawBogErrors();
+}
 
-drawBogResults();
 
-drawBogMissingPatrols();
+if(bogResultsBody)
+{
+    drawBogResults();
+}
+
+
+if(bogMissingPatrols)
+{
+    drawBogMissingPatrols();
+}
