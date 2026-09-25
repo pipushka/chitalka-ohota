@@ -1179,6 +1179,7 @@ drawResults();
 const BOG_PATROL_POINTS = 1;
 const BOG_LEADER_BONUS = 2;
 const BOG_LEADING_POINTS = 1.5;
+const BOG_LATE_HOURS = 12;
 
 // Обязательные времена патрулей
 const BOG_PATROL_TIMES = [
@@ -2013,18 +2014,11 @@ function getBogPublicationDate(text) {
 // Дозор
 // ------------------------------------------------------------
 
-function parseBogWatch(
-    reportText,
-    players,
-    errors,
-    reportInfo
-) {
+// ------------------------------------------------------------
+// Дозор
+// ------------------------------------------------------------
 
-    const commentNumber =
-        reportInfo && reportInfo.commentNumber
-            ? `#${reportInfo.commentNumber}`
-            : "Дозор";
-
+function parseBogWatch(reportText, players, errors) {
 
     const startValue = getBogField(
         reportText,
@@ -2047,161 +2041,7 @@ function parseBogWatch(
     );
 
 
-    // Только начало дозора.
-    // Это не ошибка и не считается.
-    if (!endValue) {
-        return;
-    }
-
-
-    if (!startValue) {
-
-        errors.push(
-            `${commentNumber} — Дозор: отсутствует «Дата и время начала».`
-        );
-
-        return;
-    }
-
-
-    if (!placeValue) {
-
-        errors.push(
-            `${commentNumber} — Дозор: отсутствует «Место дозора».`
-        );
-
-        return;
-    }
-
-
-    if (!participantValue) {
-
-        errors.push(
-            `${commentNumber} — Дозор: отсутствует «Участник».`
-        );
-
-        return;
-    }
-
-
-    const startDate =
-        parseBogDateTime(startValue);
-
-    const endDate =
-        parseBogDateTime(endValue);
-
-
-    if (!startDate) {
-
-        errors.push(
-            `${commentNumber} — Дозор: не удалось понять дату начала «${startValue}».`
-        );
-
-        return;
-    }
-
-
-    if (!endDate) {
-
-        errors.push(
-            `${commentNumber} — Дозор: не удалось понять дату конца «${endValue}».`
-        );
-
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // Дата комментария не может быть раньше даты дозора
-    // --------------------------------------------------------
-
-    if (
-        reportInfo &&
-        reportInfo.publicationDate
-    ) {
-
-        const publicationDate =
-            reportInfo.publicationDate;
-
-
-        const startDay =
-            new Date(
-                startDate.getFullYear(),
-                startDate.getMonth(),
-                startDate.getDate()
-            ).getTime();
-
-
-        const publicationDay =
-            new Date(
-                publicationDate.getFullYear(),
-                publicationDate.getMonth(),
-                publicationDate.getDate()
-            ).getTime();
-
-
-        if (startDay > publicationDay) {
-
-            errors.push(
-                `${commentNumber} — Дозор: дата дозора позже даты публикации комментария.`
-            );
-
-            return;
-        }
-    }
-
-
-    // --------------------------------------------------------
-    // Конец должен быть после начала
-    // --------------------------------------------------------
-
-    if (endDate <= startDate) {
-
-        errors.push(
-            `${commentNumber} — Дозор ${startValue}: дата конца раньше или совпадает с началом.`
-        );
-
-        return;
-    }
-
-
-    // --------------------------------------------------------
-    // ID участника
-    // --------------------------------------------------------
-
-    const ids =
-        getBogIds(participantValue);
-
-
-    if (ids.length === 0) {
-
-        errors.push(
-            `${commentNumber} — Дозор ${startValue}: у участника нет ID.`
-        );
-
-        return;
-    }
-
-
-    const participantId =
-        ids[0];
-
-
-    // --------------------------------------------------------
-    // Только минуты
-    // --------------------------------------------------------
-
-    const milliseconds =
-        endDate.getTime() -
-        startDate.getTime();
-
-
-    const minutes =
-        Math.floor(
-            milliseconds / 60000
-        );
-
-
+   
     addBogWatchTime(
         players,
         participantId,
@@ -2210,39 +2050,53 @@ function parseBogWatch(
 
 
     // --------------------------------------------------------
-    // Опоздание с отпиской > 12 часов
+    // Проверка опоздания с ОТЧЁТОМ
+    //
+    // Если в начале блока присутствует дата публикации
+    // комментария, проверяем:
+    //
+    // публикация > конец дозора + 12 часов
     // --------------------------------------------------------
 
-    if (
-        reportInfo &&
-        reportInfo.publicationDate
-    ) {
+    const publicationDate =
+        getBogPublicationDate(reportText);
+
+
+    if (publicationDate) {
 
         const lateLimit =
             endDate.getTime() +
-            12 * 60 * 60 * 1000;
+            (
+                BOG_LATE_HOURS *
+                60 *
+                60 *
+                1000
+            );
 
 
         if (
-            reportInfo.publicationDate.getTime() >
+            publicationDate.getTime() >
             lateLimit
         ) {
 
             const lateHours =
                 (
-                    reportInfo.publicationDate.getTime() -
+                    publicationDate.getTime() -
                     endDate.getTime()
                 ) /
-                (60 * 60 * 1000);
+                (
+                    60 *
+                    60 *
+                    1000
+                );
 
 
             errors.push(
-                `${commentNumber} — Дозор ${startValue} — ${endValue}: отчёт отписан спустя ${formatBogNumber(lateHours)} ч. после окончания.`
+                `Дозор ${startValue} — ${endValue}: отчёт отписан спустя ${formatBogNumber(lateHours)} ч. после окончания.`
             );
         }
     }
 }
-
 // ------------------------------------------------------------
 // Числа
 // ------------------------------------------------------------
