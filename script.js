@@ -2883,12 +2883,12 @@ function drawBogResults(players)
                 ${formatBogNumber(player.patrol)}
             </td>
 
-            <td class="leadCell">
-                ${formatBogNumber(player.leader)}
-            </td>
-
             <td class="mouseCell">
                 ${formatBogNumber(player.watch)}
+            </td>
+
+            <td class="leadCell">
+                ${formatBogNumber(player.leader)}
             </td>
         `;
 
@@ -2898,8 +2898,6 @@ function drawBogResults(players)
         );
     }
 }
-
-
 /* =====================================================
    ГЛАВНЫЙ РАСЧЁТ БОГ
 ===================================================== */
