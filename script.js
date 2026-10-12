@@ -947,23 +947,12 @@ function drawResults()
         const row =
             document.createElement("tr");
 
-   row.innerHTML = `
-    <td class="idCell">
-        ${player.id}
-    </td>
-
-    <td class="scoreCell">
-        ${formatBogNumber(player.patrol)}
-    </td>
-
-    <td class="mouseCell">
-        ${formatBogNumber(player.watch)}
-    </td>
-
-    <td class="leadCell">
-        ${formatBogNumber(player.leader)}
-    </td>
-`;
+        row.innerHTML = `
+            <td class="idCell">${player.id}</td>
+            <td class="scoreCell">${formatNumber(player.hunt)}</td>
+            <td class="leadCell">${player.lead}</td>
+            <td class="mouseCell">${formatNumber(player.mouse)}</td>
+        `;
 
         resultsBody.appendChild(row);
     }
