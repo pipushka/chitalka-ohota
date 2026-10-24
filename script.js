@@ -78,6 +78,7 @@ const totalPlayers =
 
 let players = {};
 let errors = [];
+let mouseHuntersByDate = {};
 /* =====================================================
    Игрок
 ===================================================== */
@@ -303,6 +304,7 @@ function calculate()
 {
     players = {};
     errors = [];
+    mouseHuntersByDate = {};
 
     const text =
         reportsArea.value.trim();
@@ -639,6 +641,11 @@ function parseHuntReport(
                 .replace(",", ".")
             );
 
+        if(!mouseHuntersByDate[reportDate])
+            mouseHuntersByDate[reportDate] = new Set();
+
+        mouseHuntersByDate[reportDate].add(id);
+
         addMouse(
             id,
             points,
@@ -836,26 +843,23 @@ function parseHuntReport(
 
 function checkDailyLimits()
 {
+    for(const [date, hunters] of Object.entries(mouseHuntersByDate))
+    {
+        if(hunters.size > 12)
+        {
+            errors.push(
+                `За ${date} найдено ${hunters.size} охотников на мышей (ID: ${[...hunters].join(", ")}). Лимит — 12 охотников в сутки.`
+            );
+        }
+    }
+
     for(const player of Object.values(players))
     {
         for(const date in player.dates)
         {
-            const data =
-                player.dates[date];
-
-            if(data.hunt > 5)
-            {
-                errors.push(
-                    `Игрок ${player.id} уже получил максимум дичи за ${date}, комментарии того дня: ${data.huntReports.join(", ")}`
-                );
-
-                const excess =
-                    data.hunt - 5;
-
-                player.hunt -= excess;
-
-                data.hunt = 5;
-            }
+            const data = player.dates[date];
+            const mousePlacesFilled =
+                (mouseHuntersByDate[date]?.size || 0) >= 12;
 
             if(data.mouse > 5)
             {
@@ -863,17 +867,31 @@ function checkDailyLimits()
                     `Игрок ${player.id} уже получил максимум мышей за ${date}, комментарии того дня: ${data.mouseReports.join(", ")}`
                 );
 
-                const excess =
-                    data.mouse - 5;
-
+                const excess = data.mouse - 5;
                 player.mouse -= excess;
-
                 data.mouse = 5;
+            }
+
+            // Обычно за дичь можно получить 5 баллов.
+            // При занятых всех 12 местах лимит дичи повышается до 10,
+            // но общий лимит за сутки остаётся 10 баллов.
+            const huntLimit = mousePlacesFilled
+                ? Math.max(0, 10 - data.mouse)
+                : 5;
+
+            if(data.hunt > huntLimit)
+            {
+                errors.push(
+                    `Игрок ${player.id} превысил лимит баллов за дичь за ${date}: разрешено ${formatNumber(huntLimit)}, получено ${formatNumber(data.hunt)}. Комментарии: ${data.huntReports.join(", ") || "не указаны"}`
+                );
+
+                const excess = data.hunt - huntLimit;
+                player.hunt -= excess;
+                data.hunt = huntLimit;
             }
         }
     }
 }
-
 
 
 /* =====================================================
@@ -3169,8 +3187,7 @@ function copyBogResult()
 
 
 /* =====================================================
-   ОЧИСТКА БОГ
-===================================================== */
+   ОЧИСТКА БОГ */
 
 function clearBog()
 {
@@ -3223,8 +3240,7 @@ function clearBog()
 
 
 /* =====================================================
-   КНОПКИ БОГ
-===================================================== */
+   КНОПКИ БОГ */
 
 if(bogCalculateBtn)
 {
