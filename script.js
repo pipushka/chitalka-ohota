@@ -125,45 +125,41 @@ function addHunt(id, value, date, reportNumber)
 
 function addMouse(id, value, date, reportNumber)
 {
-    const player =
-        createPlayer(id);
+    const player = createPlayer(id);
+
+    date = date.trim();
 
     if(!player.dates[date])
     {
         player.dates[date] =
         {
-            hunt:0,
-            mouse:0,
-            huntReports:[],
-            mouseReports:[]
+            hunt: 0,
+            mouse: 0,
+            huntReports: [],
+            mouseReports: []
         };
     }
 
+    const data = player.dates[date];
 
-    const available =
-        5 - player.dates[date].mouse;
+    if(
+        reportNumber !== undefined &&
+        !data.mouseReports.includes(reportNumber)
+    )
+    {
+        data.mouseReports.push(reportNumber);
+    }
 
+    const available = 5 - data.mouse;
 
     if(available <= 0)
         return;
 
+    const add = Math.min(value, available);
 
-    const add =
-        Math.min(value, available);
-
-
-    player.dates[date].mouse += add;
-
-    if(reportNumber !== undefined)
-    {
-        player.dates[date]
-            .mouseReports
-            .push(reportNumber);
-    }
-
+    data.mouse += add;
     player.mouse += add;
 }
-
 
 
 function addLead(id)
@@ -860,9 +856,11 @@ function checkDailyLimits()
 
             if(data.mouse > 5)
             {
-                errors.push(
-                    `Игрок ${player.id} уже получил максимум мышей за ${date}, комментарии того дня: ${data.mouseReports.join(", ")}`
-                );
+                errors.push(`Игрок ${player.id} уже получил максимум баллов за ${date}, комментарии того дня: ${data.mouseReports.length? data.mouseReports.map(n => `#${n}`)
+                .join(", ")
+            : "не указаны"
+    }`
+);
 
                 const excess = data.mouse - 5;
                 player.mouse -= excess;
@@ -876,16 +874,17 @@ function checkDailyLimits()
                 ? Math.max(0, 10 - data.mouse)
                 : 5;
 
-            if(data.hunt > huntLimit)
-            {
-                errors.push(
-                    `Игрок ${player.id} уже получил максимум баллов за ${date}, комментарии того дня: ${data.mouseReports.join(", ")}`
-                );
+           if(data.hunt > huntLimit)
+{
+    errors.push(
+        `Игрок ${player.id} уже получил максимум баллов за ${date}, комментарии того дня: ${data.huntReports.length? data.huntReports.map(n => `#${n}`).join(", ")
+            : "не указаны"}`
+    );
 
-                const excess = data.hunt - huntLimit;
-                player.hunt -= excess;
-                data.hunt = huntLimit;
-            }
+    const excess = data.hunt - huntLimit;
+    player.hunt -= excess;
+    data.hunt = huntLimit;
+}
         }
     }
 }
