@@ -644,7 +644,28 @@ function parseHuntReport(
         if(!mouseHuntersByDate[reportDate])
             mouseHuntersByDate[reportDate] = new Set();
 
-        mouseHuntersByDate[reportDate].add(id);
+        const mouseHunters = mouseHuntersByDate[reportDate];
+
+        // Уже учтённый охотник остаётся охотником на мышей.
+        // Если лимит 12 уникальных охотников уже занят, нового участника
+        // переводим в обычную дичь, а не начисляем ему баллы за мышей.
+        if(!mouseHunters.has(id) && mouseHunters.size >= 12)
+        {
+            errors.push(
+                `#${number} — лимит охоты на мышей за ${reportDate} уже занят 12 охотниками. Игрок ${id} не засчитан в мышей; его баллы учтены как обычная дичь.`
+            );
+
+            addHunt(
+                id,
+                points,
+                reportDate,
+                number
+            );
+
+            return;
+        }
+
+        mouseHunters.add(id);
 
         addMouse(
             id,
@@ -843,16 +864,6 @@ function parseHuntReport(
 
 function checkDailyLimits()
 {
-    for(const [date, hunters] of Object.entries(mouseHuntersByDate))
-    {
-        if(hunters.size > 12)
-        {
-            errors.push(
-                `За ${date} найдено ${hunters.size} охотников на мышей (ID: ${[...hunters].join(", ")}). Лимит — 12 охотников в сутки.`
-            );
-        }
-    }
-
     for(const player of Object.values(players))
     {
         for(const date in player.dates)
@@ -3187,7 +3198,8 @@ function copyBogResult()
 
 
 /* =====================================================
-   ОЧИСТКА БОГ */
+   ОЧИСТКА БОГ
+===================================================== */
 
 function clearBog()
 {
@@ -3240,7 +3252,8 @@ function clearBog()
 
 
 /* =====================================================
-   КНОПКИ БОГ */
+   КНОПКИ БОГ
+===================================================== */
 
 if(bogCalculateBtn)
 {
